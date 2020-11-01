@@ -6,33 +6,25 @@ const ctx = game.getContext('2d');
 
 const colors = ['#08F7FE', '#09FbD3', '#FE53BB', '#F5D300'];
 
-// ctx canvas element thinks it is 180x300 (default),
-// items are stretched to fit dom element
-// set hxw of game element on dom with getcomputed style
-
-//getcomputed style >>> returns object with all css values
-// set attribute of game to "height"
 const computedStyle = getComputedStyle(game);
 
-//get height/width key from the css object
 const height = computedStyle.height;
 const width = computedStyle.width;
-//set dom attribute  - DOM
+
 game.height = parseInt(height);
 game.width = parseInt(width);
 
-console.log(game.height); //817 PX HEIGHT
-console.log(game.width); // 576 PX WIDTH
+// game.setAttribute("height", parseInt(getComputedStyle(game)["height"]))
+// game.setAttribute("width", parseInt(getComputedStyle(game)["width"]))
 
-// game.setAttribute("height", getComputedStyle(game)["height"])
-// game.setAttribute("width", getComputedStyle(game)["width"])
-
-// once the size is scaled correctly, set other styling
+//868x443
 
 const gameOver = false;
 const score = 0;
 const lives = 10;
 const fallingArray = [];
+let catcherL;
+
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -50,9 +42,8 @@ function rand(min, max) {
 
 class Catcher {
   //basket
-  constructor(width, height, color, key) {
-    this.color = color;
-
+  constructor(width, height, key) {
+    this.color = colors[rand(0, colors.length)];
     this.width = width;
     this.height = height;
     this.key = key;
@@ -63,20 +54,20 @@ class Catcher {
   render() {
     ctx.fillStyle = this.color;
     ctx.fillRect(this.x, this.y, this.width, this.height);
-    console.log(this.x, this.y, this.width, this.height);
-  }
-
-  reset() {
-    //
-  }
+}
 
   changeColor() {
     // pick a new color not equal to previous color
     const otherColors = colors.filter((col) => col !== this.color);
     //const otherColors = colors.filter(col => {return col !==this.color});
     this.color = otherColors[rand(0, otherColors.length)];
+    return this.color;
   }
 }
+
+
+
+
 
 // TODO: use set interval + random timer
 //timer=rand(10,20s)
@@ -90,7 +81,7 @@ class Fallingthings {
     this.color = colors[rand(0, colors.length)];
     this.speedX = 0;
     this.speedY = 0;
-    this.gravity = 0.05;
+    this.gravity = 0.10;
     // this.gravitySpeed = 0;
     this.radius = 10;
     this.match = false;
@@ -120,7 +111,8 @@ class Fallingthings {
     this.position();
     //render new postiion
 
-    const floor = game.height - this.height;
+    const floor = game.height - this.radius;
+    console.log(floor);
     if (this.y > floor) {
       this.alive = false;
       clearInterval(this.interval);
@@ -129,23 +121,25 @@ class Fallingthings {
   }
 }
 
-const leftCatcher = new Catcher(220, 50, 'pink', 150, 10);
+catcherL= new Catcher(220, 50, 'space');
 
 function update() {
-  // get random timer
-  const fallTimer = rand(5000, 10000);
+
+
 
   // set inerval to create new instance with the timer
 
   setInterval(() => {
     fallingArray.push(new Fallingthings());
-  }, fallTimer);
+  }, rand(1000, 2000));
 
+  setInterval(()=>{
+    catcherL.changeColor;
+    console.log(catcherL.changeColor);
+    catcherL.color = catcherL.changeColor();
+    }, rand(5000, 10000));
 
-
-  const catchTimer = rand(5000, 10000);
-  setInterval(leftCatcher.changeColor, catchTimer);
-  console.log(leftCatcher.color);
+    /////???????????? better way to do this???
 
   //frames per sec = amt of times it is rendered per x ms
   //update = tick rate - # of times the canvas is evaluated per second
@@ -154,16 +148,18 @@ function update() {
 function render() {
   //never call updates from render
   ctx.clearRect(0, 0, game.width, game.height);
-  leftCatcher.render();
+  catcherL.render();
+  console.log(catcherL.color)
 
   for (const x of fallingArray) {
     x.render();
-
     //x.fall();
   }
 //check if all objects in array are alive, filter out dead falling objects
   // call fall on all alive objects in array
   falllingArray = fallingArray.filter((thing) => thing.alive);
+  /// not filtering properly
+  console.log(fallingArray);
 }
 
 //requestAnimationFrame(update);
@@ -184,6 +180,7 @@ function render() {
 // startGame();
 
 document.addEventListener('DOMContentLoaded', function () {
+
   update();
   var runGame = setInterval(render, 60);
 });
