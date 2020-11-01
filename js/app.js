@@ -32,6 +32,7 @@ console.log(game.width); // 576 PX WIDTH
 const gameOver = false;
 const score = 0;
 const lives = 10;
+const fallingArray = [];
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -94,6 +95,7 @@ class Fallingthings {
     this.radius = 10;
     this.match = false;
     this.alive = true; //if color matches catcher, change to true
+    this.interval = setInterval(this.fall.bind(this), 60);
   }
 
   render() {
@@ -103,8 +105,6 @@ class Fallingthings {
     ctx.fillStyle = this.color;
     ctx.fill();
     ctx.closePath();
-
-    //tx.stroke();
   }
 
   position() {
@@ -116,92 +116,63 @@ class Fallingthings {
   }
 
   fall() {
-      // update position
+    // update position
     this.position();
     //render new postiion
-    this.render();
 
-  }
-
-  collisionDetection() {
     const floor = game.height - this.height;
     if (this.y > floor) {
-      this.alive=false;
+      this.alive = false;
+      clearInterval(this.interval);
+
     }
   }
 }
 
 const leftCatcher = new Catcher(220, 50, 'pink', 150, 10);
 
-
 function update() {
-  ctx.clearRect(0, 0, game.width, game.height);
+  // get random timer
+  const fallTimer = rand(5000, 10000);
 
+  // set inerval to create new instance with the timer
 
-  if (!gameOver) {
-    leftCatcher.render();
-
-    // get random timer
-    const fallTimer = rand(5000, 10000);
-    console.log(fallTimer);
-
-    //array of all currently falling objects
-    const fallingArray = [];
-    // set inerval to create new instance with the timer
-      //setInterval((e)=> {e = new Fallingthings(); e.fall()}, fallTimer);
-
-      setInterval(
-        ()=> {
-          const newThing = new Fallingthings();
-          //e.render();
-            fallingArray.push(newThing);
-          console.log(newThing);
-
-      }, fallTimer);
-
-  console.log(fallingArray);
+  setInterval(() => {
+    fallingArray.push(new Fallingthings());
+  }, fallTimer);
 
 
 
-      // set random interval to create new object + push to array
-//     setInterval(fallingArray.push(
-//         (e)=> {
-//           e = new Fallingthings();
-//           //e.render();
-
-//           console.log(e);
-//           return e;
-//       }), fallTimer);
-
-//   console.log(fallingArray);
-
-      //check if all objects in array are alive, filter out dead falling objects
-      // call fall on all alive objects in array
-
-      fallingArray.filter((thing) => thing.alive);
-
-
-
-
-  const catchTimer = rand(50000, 100000);
-  setInterval(leftCatcher.changeColor(), catchTimer);
+  const catchTimer = rand(5000, 10000);
+  setInterval(leftCatcher.changeColor, catchTimer);
   console.log(leftCatcher.color);
 
-
-
-
-
-
-  }
-
-  //requestAnimationFrame(update);
-  //event loop drives every frame of a js process
-
-  // randomly spawn new objects
-  // detect collision
-  // detect if game over
-  //change colors, etc.
+  //frames per sec = amt of times it is rendered per x ms
+  //update = tick rate - # of times the canvas is evaluated per second
 }
+
+function render() {
+  //never call updates from render
+  ctx.clearRect(0, 0, game.width, game.height);
+  leftCatcher.render();
+
+  for (const x of fallingArray) {
+    x.render();
+
+    //x.fall();
+  }
+//check if all objects in array are alive, filter out dead falling objects
+  // call fall on all alive objects in array
+  falllingArray = fallingArray.filter((thing) => thing.alive);
+}
+
+//requestAnimationFrame(update);
+//event loop drives every frame of a js process
+
+// randomly spawn new objects
+// detect collision
+// detect if game over
+//change colors, etc.
 
 // function startGame () {
 
@@ -213,7 +184,8 @@ function update() {
 // startGame();
 
 document.addEventListener('DOMContentLoaded', function () {
-  var runGame = setInterval(update, 60);
+  update();
+  var runGame = setInterval(render, 60);
 });
 
 // }
