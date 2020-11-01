@@ -1,0 +1,56 @@
+html, body{
+    margin: 0;
+    padding: 0;
+    height: 90%;
+
+  }
+
+body {
+    background-image: url('../img/background2.jpg');
+    background-size: cover;
+}
+
+.container {
+
+    background-color: #ffffff;
+    margin: 0 auto;
+    margin-top: 5%;
+    display: grid;
+    width: 50%;
+    height: 100%;
+    grid-template-rows: 0.1fr 0.8fr 0.1fr;
+    grid-template-columns: 0.2fr 0.6fr 0.2fr;
+    grid-template-areas:
+                        'header game rpanel'
+                        'lpanel game rpanel'
+                        'lpanel game footer';
+}
+
+main {
+    grid-area: game;
+}
+
+#left {
+    grid-area: lpanel;
+    background-color: rgb(73, 73, 73);
+}
+
+#right {
+    grid-area: rpanel;
+}
+
+#header {
+    grid-area: header;
+}
+
+#footer {
+    grid-area: footer;
+}
+
+canvas {
+    background-color: rgb(0, 0, 0);
+    width: 100%;
+    height: 100%;
+}
+
+
