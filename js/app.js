@@ -30,7 +30,8 @@ let fallingArray = [];
 const midX = game.width / 2 - this.width / 2;
 const midY = game.height - this.height;
 let catcherL;
-const gameOver = "BIG F";
+let catcherR;
+const gameOver = 'BIG F';
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -48,19 +49,22 @@ function rand(min, max) {
 
 class Catcher {
   //basket
-  constructor(width, height, key) {
+  constructor(width, height, x, y, key) {
     this.color = colors[rand(0, colors.length)];
     this.width = width;
     this.height = height;
+    this.x = x;
+    this.y = y;
     this.key = key;
-    this.x = game.width / 2 - this.width / 2;
-    this.y = game.height - this.height;
+
+    // this.x = game.width / 2 - this.width / 2;
+    // this.y = game.height - this.height;
     this.keydown = false;
 
     document.addEventListener(
       'keydown',
       function (key) {
-        if (key.key == 'f') {
+        if (key.key == this.key) {
           console.log('space down');
           this.keydown = true;
         }
@@ -70,7 +74,7 @@ class Catcher {
     document.addEventListener(
       'keyup',
       function (key) {
-        if (key.key == 'f') {
+        if (key.key == this.key) {
           console.log('space up');
           this.keydown = false;
         }
@@ -83,7 +87,7 @@ class Catcher {
     ctx.fillRect(this.x, this.y, this.width, this.height);
     this.stroke();
     if (this.keydown) {
-      ctx.fillRect(this.x-5, this.y-5, this.width + 10, this.height + 10);
+      ctx.fillRect(this.x - 5, this.y - 5, this.width + 10, this.height + 10);
     }
     if (!this.keydown) {
       ctx.fillStyle = this.color;
@@ -139,10 +143,10 @@ class Catcher {
 }
 
 class Fallingthings {
-  //block
+  //need an extended class
   constructor() {
-    this.x = rand(game.width / 4, (game.width / 4) * 3); //spawn x-coord
-    this.y = rand(0, game.height / 8); //spawn y-coord
+    this.x = rand(game.width / 4, (game.width / 4) * 3);
+    this.y = rand(0, game.height / 8);
     this.color = colors[rand(0, colors.length)];
     this.speedX = 0;
     this.speedY = 0;
@@ -181,9 +185,42 @@ class Fallingthings {
   }
 }
 
-catcherL = new Catcher(220, 20, 'f');
+class FallingthingsL extends Fallingthings {
+  constructor() {
+    super();
+    this.slope = 7;
+    this.x = rand(0, game.width / 5);
+    this.y = rand(0, game.height / 16);
+  }
+  position() {
+    this.speedY += this.gravity;
+    this.y += this.speedY;
+    this.x += this.slope;
+  }
 
-function scoreManager() {}
+}
+
+
+class FallingthingsR extends Fallingthings {
+  constructor() {
+    super();
+    this.slope = 7;
+    this.x = rand((game.width / 5)*5, game.width);
+    this.y = rand(0, game.height / 16);
+  }
+  position() {
+    this.speedY += this.gravity;
+    this.y += this.speedY;
+    this.x -= this.slope;
+  }
+}
+
+
+
+const catchersArray = [
+  (catcherL = new Catcher(250, 20, 10, game.height - 20, 'f')),
+  (catcherR = new Catcher(250, 20, game.width - 260, game.height - 20, 'j')),
+];
 
 function collisionDetection(obj, catcher) {
   if (obj.y >= game.height - catcher.height) {
@@ -195,13 +232,13 @@ function collisionDetection(obj, catcher) {
       console.log('+ score');
       score++;
     }
-
+    // if not matching + keydown >> -1 life
+    // if matching and no keydown >> -1 life
     if (
       (!keydown && obj.color == catcher.color) ||
       (keydown && obj.color !== catcher.color)
     ) {
       console.log(keydown, obj.color, catcher.color);
-
       lives -= 1;
       console.log('-1 life' + lives);
     }
@@ -211,16 +248,30 @@ function collisionDetection(obj, catcher) {
 
 function update() {
   setInterval(() => {
-    fallingArray.push(new Fallingthings());
+    //fallingArray.push(new Fallingthings());
+    fallingArray.push(new FallingthingsL());
   }, rand(1000, 2000));
 
-  // setInterval(catcherL.changeColor
-  //   //catcherL.color = catcherL.changeColor();
-  // , rand(5000, 10000));
+  setInterval(() => {
+    //fallingArray.push(new Fallingthings());
+    fallingArray.push(new FallingthingsR());
+  }, rand(1000, 2000));
 
+  //change color at random intervals for every catcher
   setInterval(function () {
     catcherL.changeColor();
+    console.log(catcherL);
   }, rand(5000, 10000));
+
+  setInterval(function () {
+    catcherR.changeColor();
+  }, rand(5000, 10000));
+
+  //   for (const catcher of catchersArray){
+  //   setInterval(function () {
+  //     catcher.changeColor();
+  //   }, rand(5000, 10000));
+  // }
 
   /////???????????? better way to do this???
 
@@ -233,31 +284,32 @@ function render() {
   ctx.clearRect(0, 0, game.width, game.height);
 
   ctx.font = "30px 'Montserrat Subrayada";
-  ctx.fillStyle = "#FFFFFF";
+  ctx.fillStyle = '#FFFFFF';
   ctx.fillText(`Score: ${score}`, 10, 40);
-  ctx.fillText(`Lives: ${lives}`, game.width-150, 40);
+  ctx.fillText(`Lives: ${lives}`, game.width - 150, 40);
 
-
-  catcherL.render();
+  // render every catcher
+  for (const catcher of catchersArray) {
+    catcher.render();
+  }
 
   for (const x of fallingArray) {
     x.render();
     collisionDetection(x, catcherL);
+    collisionDetection(x, catcherR);
     document.getElementById('header').textContent = 'Score:' + score;
     document.getElementById('footer').textContent = 'Lives:' + lives;
-
   }
   //check if all objects in array are alive, filter out dead falling objects
   // call fall on all alive objects in array
 
   fallingArray = fallingArray.filter((thing) => thing.alive);
 
-  if (lives==0){
+  if (lives == 0) {
     continueGame = false;
     ctx.clearRect(0, 0, game.width, game.height);
     ctx.font = "100px 'Montserrat Subrayada";
-    ctx.fillText(`${gameOver}`, game.width/2, game.height/2);
-
+    ctx.fillText(`${gameOver}`, game.width / 2, game.height / 2);
   }
 
   if (continueGame) {
@@ -303,4 +355,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // draw('D:/SEI1019/ga-projects/untitled-game/img/nokey.gif');
 
+//TODO:
 //space to start
+// RESET
+// ADD DIRECTIONS BEFORE START
