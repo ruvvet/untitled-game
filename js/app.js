@@ -22,7 +22,7 @@ game.width = parseInt(width);
 const gameOver = false;
 const score = 0;
 const lives = 10;
-const fallingArray = [];
+let fallingArray = [];
 let catcherL;
 
 
@@ -59,19 +59,11 @@ class Catcher {
   changeColor() {
     // pick a new color not equal to previous color
     const otherColors = colors.filter((col) => col !== this.color);
-    //const otherColors = colors.filter(col => {return col !==this.color});
     this.color = otherColors[rand(0, otherColors.length)];
     return this.color;
   }
 }
 
-
-
-
-
-// TODO: use set interval + random timer
-//timer=rand(10,20s)
-//setinterval(objectinstanceName.changecolor, timer)
 
 class Fallingthings {
   //block
@@ -112,22 +104,37 @@ class Fallingthings {
     //render new postiion
 
     const floor = game.height - this.radius;
-    console.log(floor);
+    console.log('floor' + floor);
     if (this.y > floor) {
+    console.log('it dead now');
       this.alive = false;
       clearInterval(this.interval);
 
     }
   }
+
+
 }
 
-catcherL= new Catcher(220, 50, 'space');
+catcherL= new Catcher(220, 10, 'space');
+
+function scoreManager(){
+
+}
+
+
+// function collisionDetection(obj, catcher){
+//       if (obj.y >= game.height-10){
+//           console.log('hit detected');
+//           if (obj.color == )
+
+//       }
+
+//   }
+
+
 
 function update() {
-
-
-
-  // set inerval to create new instance with the timer
 
   setInterval(() => {
     fallingArray.push(new Fallingthings());
@@ -135,40 +142,45 @@ function update() {
 
   setInterval(()=>{
     catcherL.changeColor;
-    console.log(catcherL.changeColor);
     catcherL.color = catcherL.changeColor();
     }, rand(5000, 10000));
 
     /////???????????? better way to do this???
 
+
   //frames per sec = amt of times it is rendered per x ms
   //update = tick rate - # of times the canvas is evaluated per second
+
+    document.getElementById("header").textContent = "Score:" + score;
+
+
+
+
 }
 
 function render() {
   //never call updates from render
   ctx.clearRect(0, 0, game.width, game.height);
   catcherL.render();
-  console.log(catcherL.color)
 
   for (const x of fallingArray) {
     x.render();
-    //x.fall();
+    //collisionDetection(x, catcherL.color);
+
   }
 //check if all objects in array are alive, filter out dead falling objects
   // call fall on all alive objects in array
-  falllingArray = fallingArray.filter((thing) => thing.alive);
-  /// not filtering properly
+
+
+  fallingArray = fallingArray.filter((thing) => thing.alive);
   console.log(fallingArray);
+
+  requestAnimationFrame(render);
 }
 
 //requestAnimationFrame(update);
 //event loop drives every frame of a js process
 
-// randomly spawn new objects
-// detect collision
-// detect if game over
-//change colors, etc.
 
 // function startGame () {
 
@@ -180,9 +192,9 @@ function render() {
 // startGame();
 
 document.addEventListener('DOMContentLoaded', function () {
-
   update();
-  var runGame = setInterval(render, 60);
+  render();
+  //var runGame = setInterval(render, 60);
 });
 
 // }
@@ -205,16 +217,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // draw('D:/SEI1019/ga-projects/untitled-game/img/nokey.gif');
 
-// //<script>
-// var c = document.getElementById("myCanvas");
-// var ctx = c.getContext("2d");
-// var img = document.getElementById("scream");
-// ctx.drawImage(img, 10, 10);
-// </script>
 
 //space to start
-//
-
-//extend - fallingthings class,
-// could change color halfway, or be bigger, etc
-// override render function with super on parent
