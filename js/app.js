@@ -4,7 +4,8 @@
 const game = document.getElementById('game');
 const ctx = game.getContext('2d');
 
-const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564'];
+//const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564'];
+const colors = ['#F5759B', '#D91D25', '#F7AE00', '#01C013', '#008DD4'];
 
 const computedStyle = getComputedStyle(game);
 
@@ -21,8 +22,6 @@ game.width = parseInt(width);
 
 ctx.lineJoin = 'round';
 ctx.globalCompositeOperation = 'lighter';
-
-
 
 let continueGame = true;
 let score = 0;
@@ -81,9 +80,9 @@ class Catcher {
   render() {
     ctx.fillStyle = this.color;
     ctx.fillRect(this.x, this.y, this.width, this.height);
-    //this.stroke();
+    this.stroke();
     if (this.keydown) {
-      ctx.fillRect(this.x, this.y, this.width + 10, this.height + 10);
+      ctx.fillRect(this.x-5, this.y-5, this.width + 10, this.height + 10);
     }
     if (!this.keydown) {
       ctx.fillStyle = this.color;
@@ -98,7 +97,7 @@ class Catcher {
 
   stroke() {
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 5;
     ctx.strokeStyle = this.color;
     ctx.lineWidth = 7.5;
     ctx.beginPath();
@@ -148,7 +147,7 @@ class Fallingthings {
     this.speedY = 0;
     this.gravity = 0.1;
     // this.gravitySpeed = 0;
-    this.radius = 10;
+    this.radius = 20;
     this.match = false;
     this.alive = true; //if color matches catcher, change to true
     this.interval = setInterval(this.fall.bind(this), 60);
@@ -181,7 +180,7 @@ class Fallingthings {
   }
 }
 
-catcherL = new Catcher(220, 10, 'f');
+catcherL = new Catcher(220, 20, 'f');
 
 function scoreManager() {}
 
