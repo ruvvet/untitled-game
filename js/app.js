@@ -25,11 +25,12 @@ ctx.globalCompositeOperation = 'lighter';
 
 let continueGame = true;
 let score = 0;
-let lives = 1;
+let lives = 10;
 let fallingArray = [];
 const midX = game.width / 2 - this.width / 2;
 const midY = game.height - this.height;
 let catcherL;
+const gameOver = "BIG F";
 
 /////////////////////////////////////////////////////////////////////////
 
@@ -230,6 +231,13 @@ function update() {
 function render() {
   //never call updates from render
   ctx.clearRect(0, 0, game.width, game.height);
+
+  ctx.font = "30px 'Montserrat Subrayada";
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillText(`Score: ${score}`, 10, 40);
+  ctx.fillText(`Lives: ${lives}`, game.width-150, 40);
+
+
   catcherL.render();
 
   for (const x of fallingArray) {
@@ -248,7 +256,7 @@ function render() {
     continueGame = false;
     ctx.clearRect(0, 0, game.width, game.height);
     ctx.font = "100px 'Montserrat Subrayada";
-    ctx.fillText("BIG F", 250, 200);
+    ctx.fillText(`${gameOver}`, game.width/2, game.height/2);
 
   }
 

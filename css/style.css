@@ -17,7 +17,7 @@ body {
 }
 
 .container {
-  background-color: #ffffff;
+  background-color: transparent;
   margin: 0 auto;
   margin-top: 5%;
   display: grid;
@@ -36,9 +36,9 @@ main {
 }
 
 .panel {
-  background-color: black;
-  color: white;
-  border: 3px solid white;
+  background-color: transparent;
+  color: transparent;
+
   font-family: 'Montserrat Subrayada', sans-serif;
 }
 
