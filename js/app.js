@@ -85,7 +85,7 @@ class Catcher {
   render() {
     ctx.fillStyle = this.color;
     ctx.fillRect(this.x, this.y, this.width, this.height);
-    this.stroke();
+    //this.stroke();
     if (this.keydown) {
       ctx.fillRect(this.x - 5, this.y - 5, this.width + 10, this.height + 10);
     }
@@ -188,7 +188,7 @@ class Fallingthings {
 class FallingthingsL extends Fallingthings {
   constructor() {
     super();
-    this.slope = 7;
+    this.slope = 8;
     this.x = rand(0, game.width / 5);
     this.y = rand(0, game.height / 16);
   }
@@ -204,7 +204,7 @@ class FallingthingsL extends Fallingthings {
 class FallingthingsR extends Fallingthings {
   constructor() {
     super();
-    this.slope = 7;
+    this.slope = 8;
     this.x = rand((game.width / 5)*5, game.width);
     this.y = rand(0, game.height / 16);
   }
@@ -218,8 +218,8 @@ class FallingthingsR extends Fallingthings {
 
 
 const catchersArray = [
-  (catcherL = new Catcher(250, 20, 10, game.height - 20, 'f')),
-  (catcherR = new Catcher(250, 20, game.width - 260, game.height - 20, 'j')),
+  (catcherL = new Catcher(300, 20, 30, game.height - 20, 'f')),
+  (catcherR = new Catcher(300, 20, game.width - 330, game.height - 20, 'j')),
 ];
 
 function collisionDetection(obj, catcher) {
@@ -247,6 +247,7 @@ function collisionDetection(obj, catcher) {
 }
 
 function update() {
+//reset random intervals so theyre actually random
   setInterval(() => {
     //fallingArray.push(new Fallingthings());
     fallingArray.push(new FallingthingsL());
@@ -359,3 +360,11 @@ document.addEventListener('DOMContentLoaded', function () {
 //space to start
 // RESET
 // ADD DIRECTIONS BEFORE START
+
+
+// make the game playable for humans
+//primary gameplay loop - what's happening every second
+//secondary gameplay loop - levels
+
+//later
+// design updates
