@@ -1,58 +1,66 @@
-html, body{
-    margin: 0;
-    padding: 0;
+@import url('https://fonts.googleapis.com/css2?family=Montserrat+Subrayada');
+
+@font-face {
+    font-family: 'Montserrat Subrayada', sans-serif;
+}
 
 
-  }
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
 
 body {
-    background-image: url('../img/background2.jpg');
-    background-size: cover;
+  background-image: url('../img/background2.jpg');
+  background-size: cover;
 }
 
 .container {
-
-    background-color: #ffffff;
-    margin: 0 auto;
-    margin-top: 5%;
-    display: grid;
-    width: 100%;
-    height: 100%;
-    grid-template-rows: 0.1fr 0.8fr 0.1fr;
-    grid-template-columns: 0.2fr 0.6fr 0.2fr;
-    grid-template-areas:
-                        'header game rpanel'
-                        'lpanel game rpanel'
-                        'lpanel game footer';
+  background-color: #ffffff;
+  margin: 0 auto;
+  margin-top: 5%;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-rows: 0.1fr 0.8fr 0.1fr;
+  grid-template-columns: 0.2fr 0.6fr 0.2fr;
+  grid-template-areas:
+    'header game rpanel'
+    'lpanel game rpanel'
+    'lpanel game footer';
 }
 
 main {
-    grid-area: game;
+  grid-area: game;
+}
+
+.panel {
+  background-color: black;
+  color: white;
+  border: 3px solid white;
+  font-family: 'Montserrat Subrayada', sans-serif;
 }
 
 #left {
-    grid-area: lpanel;
-    background-color: rgb(73, 73, 73);
+  grid-area: lpanel;
 }
 
 #right {
-    grid-area: rpanel;
+  grid-area: rpanel;
 }
 
 #header {
-    grid-area: header;
+  grid-area: header;
 }
 
 #footer {
-    grid-area: footer;
+  grid-area: footer;
 }
 
 canvas {
-    background-color: rgb(0, 0, 0);
-    width: 100%;
-    height: 100%;
-    color:white;
-
+  background-color: #000000;
+  width: 100%;
+  height: 100%;
+  color: white;
 }
-
-
