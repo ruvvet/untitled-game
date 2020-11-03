@@ -1,0 +1,52 @@
+level 0:
+    1 bar
+    1 color
+    catch one matching object color
+
+level 1:
+    2 bars
+    same color
+
+level 2:
+    2 bars
+    each a diff solid color
+
+level 3:
+    2 bars
+    each bar can be solid or have 2 subcolors
+
+level 4:
+    3 subcolors
+
+
+
+  //frames per sec = amt of times it is rendered per x ms
+  //update = tick rate - # of times the canvas is evaluated per second
+
+
+
+example games
+//https://github.com/SebetheWombat/falling-objects
+//https://code.tutsplus.com/tutorials/develop-your-first-game-in-canvas-from-start-to-finish--pre-39198
+
+sprite sheets
+https://www.spriters-resource.com/pc_computer/maplestory/
+https://www.deviantart.com/kattling/art/FREE-Bouncy-Alolan-Vulpix-Icon-762756936
+
+animated sprites in canvas
+
+//gifs https://stackoverflow.com/questions/48234696/how-to-put-a-gif-with-canvas/48348567
+http://www.williammalone.com/articles/create-html5-canvas-javascript-sprite-animation/
+
+canvas glow effect
+https://stackoverflow.com/questions/5067368/html5-canvas-create-outer-glow-effect-of-shape
+
+
+audio visualizer:
+https://foobar404.github.io/Wave.js/#/
+https://codepen.io/ryanmcnz/pen/KppJxJ
+
+
+droppign visualizer
+https://www.digitalocean.com/community/tutorials/js-canvas-animations-gravity
+https://codepen.io/alligatorio/pen/YzzzJjP
