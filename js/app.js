@@ -4,17 +4,16 @@
 // LAST UPDATED 11.02.2020
 /////////////////////////////////////////////////////////////////////////
 
-
 /////////////////////////////////////////////////////////////////////////
 // GLOBAL DEFINITIONS
 /////////////////////////////////////////////////////////////////////////
 // the game canvas
-const game = document.getElementById('game');
-const ctx = game.getContext('2d');
+const game = document.getElementById("game");
+const ctx = game.getContext("2d");
 
 // available colors
 //const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564'];
-const colors = ['#F5759B', '#D91D25', '#F7AE00', '#01C013', '#008DD4'];
+const colors = ["#F5759B", "#D91D25", "#F7AE00", "#01C013", "#008DD4"];
 
 // scale w + h and set as a variable
 const computedStyle = getComputedStyle(game);
@@ -29,8 +28,8 @@ game.width = parseInt(width);
 //868x443
 
 // for glow effect
-ctx.lineJoin = 'round';
-ctx.globalCompositeOperation = 'lighter';
+ctx.lineJoin = "round";
+ctx.globalCompositeOperation = "lighter";
 
 //score, lives, etc.
 let continueGame = true;
@@ -41,7 +40,9 @@ const midX = game.width / 2 - this.width / 2;
 const midY = game.height - this.height;
 let catcherL;
 let catcherR;
-const gameOver = 'BIG F';
+let timePassed = 0;
+let lastLoop = 0;
+const gameOver = "BIG F";
 
 /////////////////////////////////////////////////////////////////////////
 //FUNCTIONS + Classes
@@ -70,20 +71,20 @@ class Catcher {
     this.keydown = false;
 
     document.addEventListener(
-      'keydown',
+      "keydown",
       function (key) {
         if (key.key == this.key) {
-          console.log('space down');
+          console.log("space down");
           this.keydown = true;
         }
       }.bind(this)
     );
 
     document.addEventListener(
-      'keyup',
+      "keyup",
       function (key) {
         if (key.key == this.key) {
-          console.log('space up');
+          console.log("space up");
           this.keydown = false;
         }
       }.bind(this)
@@ -161,12 +162,12 @@ class Fallingthings {
     this.color = colors[rand(0, colors.length)];
     this.speedX = 0;
     this.speedY = 0;
-    this.gravity = 0.1;
+    this.gravity = 0.2;
     // this.gravitySpeed = 0;
     this.radius = 20;
     this.match = false;
     this.alive = true; //if color matches catcher, change to true
-    this.interval = setInterval(this.fall.bind(this), 60);
+    this.keeprendering = true;
   }
 
   render() {
@@ -177,23 +178,6 @@ class Fallingthings {
     ctx.fill();
     ctx.closePath();
   }
-
-  position() {
-    this.speedY += this.gravity;
-    this.y += this.speedY;
-  }
-
-  fall() {
-    // update position
-    this.position();
-    //render new postiion
-
-    const floor = game.height - this.radius;
-    if (this.y > floor) {
-      this.alive = false;
-      clearInterval(this.interval);
-    }
-  }
 }
 
 ////////////////CLASSES///////////////////
@@ -202,14 +186,19 @@ class Fallingthings {
 class FallingthingsL extends Fallingthings {
   constructor() {
     super();
-    this.slope = 8;
+    this.slope = game.width / 6;
     this.x = rand(0, game.width / 5);
     this.y = rand(0, game.height / 16);
   }
-  position() {
-    this.speedY += this.gravity;
+  fall(timeMultiplier) {
+
+    this.speedY += this.gravity * timeMultiplier;
     this.y += this.speedY;
-    this.x += this.slope;
+    this.x += this.slope * timeMultiplier;
+
+    if (this.y > game.height) {
+      this.keeprendering = false;
+    }
   }
 }
 
@@ -217,32 +206,45 @@ class FallingthingsL extends Fallingthings {
 class FallingthingsR extends Fallingthings {
   constructor() {
     super();
-    this.slope = 8;
+    this.slope = game.width / 6;
     this.x = rand((game.width / 5) * 5, game.width);
     this.y = rand(0, game.height / 16);
   }
-  position() {
-    this.speedY += this.gravity;
+  fall(timeMultiplier) {
+    this.speedY += this.gravity * timeMultiplier;
     this.y += this.speedY;
-    this.x -= this.slope;
+    this.x -= this.slope * timeMultiplier;
+
+    if (this.y > game.height) {
+      this.keeprendering = false;
+    }
   }
 }
+// parabola - make it travel along a range of paths
+
+
+
 
 //catcher array to hold all the catcher instances
 const catchersArray = [
-  (catcherL = new Catcher(300, 20, 30, game.height - 20, 'f')),
-  (catcherR = new Catcher(300, 20, game.width - 330, game.height - 20, 'j')),
+  (catcherL = new Catcher(500, 20, 30, game.height - 20, "f")),
+  (catcherR = new Catcher(500, 20, game.width - 330, game.height - 20, "j")),
 ];
 
 //collision detection manages score + life keeping in the event of a collision
 function collisionDetection(obj, catcher) {
-  if (obj.y >= game.height - catcher.height) {
+  // every time it updates, it checks if its at or past the collision line
+  // so its detecting one object multiple times as its updating every few ms
+  //
+
+  if (obj.y > game.height - catcher.height - obj.radius) {
     const keydown = catcher.keydown;
-    console.log('hit detected');
+    console.log("hit detected", obj);
+    obj.alive = false;
     // if keydown + matching
     // +score
     if (keydown && obj.color == catcher.color) {
-      console.log('+ score');
+      console.log("+ score");
       score++;
     }
     // if not matching + keydown >> -1 life
@@ -253,29 +255,37 @@ function collisionDetection(obj, catcher) {
     ) {
       console.log(keydown, obj.color, catcher.color);
       lives -= 1;
-      console.log('-1 life' + lives);
+      console.log("-1 life" + lives);
     }
     /// maybe use switches
   }
 }
 
+function spawnL() {
+  fallingArray.push(new FallingthingsL());
+  setTimeout(function () {
+    spawnL();
+  }, rand(10, 4000));
+}
+
+function spawnR() {
+  fallingArray.push(new FallingthingsR());
+  setTimeout(function () {
+    spawnR();
+  }, rand(10, 4000));
+}
+
 //manges all the randomized intervals for object generation
-function update() {
+function init() {
   //reset random intervals so theyre actually random
 
+  setTimeout(function () {
+    spawnL();
+  }, 500);
 
-  setInterval(() => {
-    //fallingArray.push(new Fallingthings());
-    fallingArray.push(new FallingthingsL());
-  }, rand(1000/(score+1), 2000/(score+1)));
-
-  setInterval(() => {
-    //fallingArray.push(new Fallingthings());
-    fallingArray.push(new FallingthingsR());
-  }, rand(1000/(score+1), 2000/(score+1)));
-
-  // tried to make spawn faster with higher score, but it doesnt seem to be going faster?
-
+  setTimeout(function () {
+    spawnR();
+  }, 500);
 
   //change color at random intervals for every catcher
   setInterval(function () {
@@ -288,12 +298,13 @@ function update() {
   }, rand(10000, 18000));
 }
 
+// only draws/renders
 function render() {
   //never call updates from render
   ctx.clearRect(0, 0, game.width, game.height);
 
   ctx.font = "30px Montserrat Subrayada";
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = "#FFFFFF";
   ctx.fillText(`Score: ${score}`, 10, 40);
   ctx.fillText(`Lives: ${lives}`, game.width - 150, 40);
 
@@ -302,15 +313,23 @@ function render() {
     catcher.render();
   }
 
-  for (const x of fallingArray) {
-    x.render();
-    collisionDetection(x, catcherL);
-    collisionDetection(x, catcherR);
+  for (const obj of fallingArray) {
+    obj.render();
   }
-  //check if all objects in array are alive, filter out dead falling objects
-  // call fall on all alive objects in array
+}
 
-  fallingArray = fallingArray.filter((thing) => thing.alive);
+// controls game state stuff only
+function updateFallingThings(timePassed) {
+  for (const obj of fallingArray) {
+    obj.fall(timePassed);
+    if (obj.alive) {
+      for (catcher of catchersArray) {
+        collisionDetection(obj, catcher);
+      }
+    }
+  }
+
+  fallingArray = fallingArray.filter((obj) => obj.keeprendering);
 
   if (lives == 0) {
     continueGame = false;
@@ -318,11 +337,36 @@ function render() {
     ctx.font = "200px Montserrat Subrayada";
     ctx.fillText(`${gameOver}`, 200, game.height / 2);
   }
+}
+
+//now = dom timestamp in ms
+// lastloop = the timestamp of the time we last called gameloop
+
+function gameLoop(now) {
+  timePassed = (now - lastLoop) / 1000;
+  lastLoop = now;
+  updateFallingThings(timePassed);
+  render();
 
   if (continueGame) {
-    requestAnimationFrame(render);
+    requestAnimationFrame(gameLoop);
   }
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+  // startGame();
+
+  document.addEventListener("keyup", function (key) {
+    if (key.key == " ") {
+      init();
+      requestAnimationFrame(gameLoop);
+    }
+  });
+});
+
+//1.
+// ctx.save + ctx.
+
 
 // function startGame(){
 //   ctx.fillStyle = "white";
@@ -332,24 +376,6 @@ function render() {
 //   ctx.fillText("Use 'f' and 'j' to catch the falling balls the match the color of the bar.", game.width/2, game.height / 2 + 30);
 //   ctx.fillText("Backspace to reset", game.width/2, game.height / 2 +60);
 // }
-
-
-document.addEventListener('DOMContentLoaded', function () {
-
-  // startGame();
-
-
-
-  document.addEventListener('keyup', function (key) {
-
-    if (key.key == " ") {
-      update();
-      render();
-    }
-  });
-});
-
-
 
 // }
 
@@ -373,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 //TODO:
 
-// RESET
+
 // ADD DIRECTIONS BEFORE START
 
 // make the game playable for humans
@@ -382,3 +408,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
 //later
 // design updates
+
+
+// SFX
+// smoother falling animation
+// always hit the bar /w parabola
+// weighted - probabilities
+// golden ball to get + lives
+
+//high scores - git.jist
+// menu
+// add tail to falling objects
+
+//mobile version
