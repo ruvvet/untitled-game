@@ -1,48 +1,51 @@
 /////////////////////////////////////////////////////////////////////////
 // UNTITLED GAME
 // JENNY FENG
-// LAST UPDATED 11.02.2020
+// LAST UPDATED 11.03.2020
 /////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////
-// GLOBAL DEFINITIONS
-/////////////////////////////////////////////////////////////////////////
-// the game canvas
-const game = document.getElementById("game");
-const ctx = game.getContext("2d");
-
-// available colors
-//const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564'];
-const colors = ["#F5759B", "#D91D25", "#F7AE00", "#01C013", "#008DD4"];
-
-// scale w + h and set as a variable
-const computedStyle = getComputedStyle(game);
-const height = computedStyle.height;
-const width = computedStyle.width;
+//GLOBAL DEFINITIONS/////////////////////////////////////////////////////
+// Setting up Canvas
+// Get canvas element from html doc
+// set drawing context for canvas area w/ 2D attributes
+const game = document.getElementById('game');
+const ctx = game.getContext('2d');
+// Scaling canvas - default is 300x150
+// Use getComputedStyle to grab the css h + w attributes of game
+//and set the h+w manually
+const height = getComputedStyle(game).height;
+const width = getComputedStyle(game).width;
 game.height = parseInt(height);
 game.width = parseInt(width);
 
-// game.setAttribute("height", parseInt(getComputedStyle(game)["height"]))
-// game.setAttribute("width", parseInt(getComputedStyle(game)["width"]))
+// Array of different colors that will be used
+//const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564']; //pastels
+const colors = ['#F5759B', '#D91D25', '#F7AE00', '#01C013', '#008DD4']; //solids
 
-//868x443
+// For glowing effects of drawn elements
+ctx.lineJoin = 'round'; //rounded corners
+ctx.globalCompositeOperation = 'lighter'; //lightens overlapping colors
 
-// for glow effect
-ctx.lineJoin = "round";
-ctx.globalCompositeOperation = "lighter";
+//constant variables
+const getMiddleX = game.width / 2;
+const getMiddleY = game.height / 2;
+const catcherWidth = (game.width / 2) * 0.7;
+const catcherHeight = game.height / 20;
+const catcherXpos = (getMiddleX - catcherWidth) / 2;
+const catcherYpos = game.height - catcherHeight;
 
-//score, lives, etc.
+//initialized variables
 let continueGame = true;
 let score = 0;
 let lives = 50;
-let fallingArray = [];
-const midX = game.width / 2 - this.width / 2;
-const midY = game.height - this.height;
+let fallingArray = []; //the array of falling objects that are alive
 let catcherL;
 let catcherR;
 let timePassed = 0;
 let lastLoop = 0;
-const gameOver = "BIG F";
+// Strings
+const gameOver = 'BIG F';
+const instructions = 'instructions go here';
 
 /////////////////////////////////////////////////////////////////////////
 //FUNCTIONS + Classes
@@ -71,20 +74,20 @@ class Catcher {
     this.keydown = false;
 
     document.addEventListener(
-      "keydown",
+      'keydown',
       function (key) {
         if (key.key == this.key) {
-          console.log("space down");
+          console.log('space down');
           this.keydown = true;
         }
       }.bind(this)
     );
 
     document.addEventListener(
-      "keyup",
+      'keyup',
       function (key) {
         if (key.key == this.key) {
-          console.log("space up");
+          console.log('space up');
           this.keydown = false;
         }
       }.bind(this)
@@ -184,14 +187,16 @@ class Fallingthings {
 //falling objects exntended classes
 // changes origin of spawn and direction of slope as it drops
 class FallingthingsL extends Fallingthings {
-  constructor() {
+  constructor(catcherColor) {
     super();
     this.slope = game.width / 6;
     this.x = rand(0, game.width / 5);
     this.y = rand(0, game.height / 16);
+    this.color = this.weightedColors(catcherColor);
+    console.log(this.color);
   }
-  fall(timeMultiplier) {
 
+  fall(timeMultiplier) {
     this.speedY += this.gravity * timeMultiplier;
     this.y += this.speedY;
     this.x += this.slope * timeMultiplier;
@@ -200,15 +205,27 @@ class FallingthingsL extends Fallingthings {
       this.keeprendering = false;
     }
   }
+
+  weightedColors(catcherColor) {
+    // creates a new array of length 3 and fills it with the catcher color
+    // then concatenates the original colors list + the new array for a weighted one
+    this.weightedColor = new Array(5).fill(catcherColor).concat(colors);
+    // return a random color from the weighted array
+    console.log(this.weightedColor);
+    this.newcolor = this.weightedColor[rand(0, this.weightedColor.length)];
+    console.log(this.newcolor);
+    return this.newcolor;
+  }
 }
 
 ////////////////CLASSES///////////////////
 class FallingthingsR extends Fallingthings {
-  constructor() {
+  constructor(catcherColor) {
     super();
     this.slope = game.width / 6;
     this.x = rand((game.width / 5) * 5, game.width);
     this.y = rand(0, game.height / 16);
+    this.color = this.weightedColors(catcherColor);
   }
   fall(timeMultiplier) {
     this.speedY += this.gravity * timeMultiplier;
@@ -219,16 +236,36 @@ class FallingthingsR extends Fallingthings {
       this.keeprendering = false;
     }
   }
+  weightedColors(catcherColor) {
+    // creates a new array of length 3 and fills it with the catcher color
+    // then concatenates the original colors list + the new array for a weighted one
+    this.weightedColor = new Array(5).fill(catcherColor).concat(colors);
+    // return a random color from the weighted array
+    console.log(this.weightedColor);
+    this.newcolor = this.weightedColor[rand(0, this.weightedColor.length)];
+    console.log(this.newcolor);
+    return this.newcolor;
+  }
 }
 // parabola - make it travel along a range of paths
 
-
-
-
-//catcher array to hold all the catcher instances
+// Catcher array to hold all the catcher instances
+// Passes width, height,x-, y-, and key to activate
 const catchersArray = [
-  (catcherL = new Catcher(500, 20, 30, game.height - 20, "f")),
-  (catcherR = new Catcher(500, 20, game.width - 330, game.height - 20, "j")),
+  (catcherL = new Catcher(
+    catcherWidth,
+    catcherHeight,
+    catcherXpos,
+    catcherYpos,
+    'f'
+  )),
+  (catcherR = new Catcher(
+    catcherWidth,
+    catcherHeight,
+    catcherXpos + getMiddleX,
+    catcherYpos,
+    'j'
+  )),
 ];
 
 //collision detection manages score + life keeping in the event of a collision
@@ -239,12 +276,12 @@ function collisionDetection(obj, catcher) {
 
   if (obj.y > game.height - catcher.height - obj.radius) {
     const keydown = catcher.keydown;
-    console.log("hit detected", obj);
+    console.log('hit detected', obj);
     obj.alive = false;
     // if keydown + matching
     // +score
     if (keydown && obj.color == catcher.color) {
-      console.log("+ score");
+      console.log('+ score');
       score++;
     }
     // if not matching + keydown >> -1 life
@@ -255,21 +292,22 @@ function collisionDetection(obj, catcher) {
     ) {
       console.log(keydown, obj.color, catcher.color);
       lives -= 1;
-      console.log("-1 life" + lives);
+      console.log('-1 life' + lives);
     }
     /// maybe use switches
   }
 }
 
 function spawnL() {
-  fallingArray.push(new FallingthingsL());
+  // we pass the catcher on the opposite side since it is supposed to match that one
+  fallingArray.push(new FallingthingsL(catcherR.color));
   setTimeout(function () {
     spawnL();
   }, rand(10, 4000));
 }
 
 function spawnR() {
-  fallingArray.push(new FallingthingsR());
+  fallingArray.push(new FallingthingsR(catcherL.color));
   setTimeout(function () {
     spawnR();
   }, rand(10, 4000));
@@ -303,8 +341,8 @@ function render() {
   //never call updates from render
   ctx.clearRect(0, 0, game.width, game.height);
 
-  ctx.font = "30px Montserrat Subrayada";
-  ctx.fillStyle = "#FFFFFF";
+  ctx.font = '30px Montserrat Subrayada';
+  ctx.fillStyle = '#FFFFFF';
   ctx.fillText(`Score: ${score}`, 10, 40);
   ctx.fillText(`Lives: ${lives}`, game.width - 150, 40);
 
@@ -334,7 +372,7 @@ function updateFallingThings(timePassed) {
   if (lives == 0) {
     continueGame = false;
     ctx.clearRect(0, 0, game.width, game.height);
-    ctx.font = "200px Montserrat Subrayada";
+    ctx.font = '200px Montserrat Subrayada';
     ctx.fillText(`${gameOver}`, 200, game.height / 2);
   }
 }
@@ -353,11 +391,11 @@ function gameLoop(now) {
   }
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener('DOMContentLoaded', function () {
   // startGame();
 
-  document.addEventListener("keyup", function (key) {
-    if (key.key == " ") {
+  document.addEventListener('keyup', function (key) {
+    if (key.key == ' ') {
       init();
       requestAnimationFrame(gameLoop);
     }
@@ -366,7 +404,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 //1.
 // ctx.save + ctx.
-
 
 // function startGame(){
 //   ctx.fillStyle = "white";
@@ -399,7 +436,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 //TODO:
 
-
 // ADD DIRECTIONS BEFORE START
 
 // make the game playable for humans
@@ -408,7 +444,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 //later
 // design updates
-
 
 // SFX
 // smoother falling animation
