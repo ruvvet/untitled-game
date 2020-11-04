@@ -200,6 +200,8 @@ function init(colors, lives) {
       ctx.fillStyle = this.color;
       ctx.fill();
       ctx.closePath();
+
+
     }
   }
 
@@ -207,7 +209,7 @@ function init(colors, lives) {
   class FallingthingsL extends Fallingthings {
     constructor(catcherColor) {
       super();
-      this.slope = Math.random() * (0.07 - 0.04) + 0.04;
+      this.slope = Math.random() * (0.09 - 0.04) + 0.04;
       this.x = rand(0, game.width / 10);
       this.y = rand(0, game.height / 20);
       this.color = this.weightedColors(catcherColor);
@@ -247,7 +249,7 @@ function init(colors, lives) {
   class FallingthingsR extends Fallingthings {
     constructor(catcherColor) {
       super();
-      this.slope = Math.random() * (0.07 - 0.04) + 0.04;
+      this.slope = Math.random() * (0.09 - 0.04) + 0.04;
       this.x = rand((game.width / 10) * 10, game.width);
       this.y = rand(0, game.height / 20);
       this.color = this.weightedColors(catcherColor);
