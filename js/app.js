@@ -26,7 +26,7 @@ const colors = ['#F5759B', '#D91D25', '#F7AE00', '#01C013', '#008DD4']; //solids
 ctx.lineJoin = 'round'; //rounded corners
 ctx.globalCompositeOperation = 'lighter'; //lightens overlapping colors
 
-//constant variables
+// Constant variables
 const getMiddleX = game.width / 2;
 const getMiddleY = game.height / 2;
 const catcherWidth = (game.width / 2) * 0.7;
@@ -34,7 +34,7 @@ const catcherHeight = game.height / 20;
 const catcherXpos = (getMiddleX - catcherWidth) / 2;
 const catcherYpos = game.height - catcherHeight;
 
-//initialized variables
+// Initialized variables
 let continueGame = true;
 let score = 0;
 let lives = 50;
@@ -43,6 +43,14 @@ let catcherL;
 let catcherR;
 let timePassed = 0;
 let lastLoop = 0;
+
+// Audio
+let hit;
+let plusScore;
+let minusLife;
+let catcherActive;
+let bgmusic;
+
 // Strings
 const gameOver = 'BIG F';
 const instructions = 'instructions go here';
@@ -55,7 +63,6 @@ const instructions = 'instructions go here';
 function rand(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
 }
-
 
 //catcher class
 // checks for matching keydown listner
@@ -77,6 +84,7 @@ class Catcher {
       'keydown',
       function (key) {
         if (key.key == this.key) {
+          catcherActive.play();
           this.keydown = true;
         }
       }.bind(this)
@@ -150,7 +158,6 @@ class Catcher {
   }
 }
 
-
 //falling objects class
 // renders
 // updates position as it falls
@@ -164,7 +171,8 @@ class Fallingthings {
     this.speedX = 0;
     this.speedY = 0;
     this.gravity = 0.2;
-    // this.gravitySpeed = 0;
+    this.gravitySpeed = 0;
+    this.bounce = 1;
     this.radius = 20;
     this.match = false;
     this.alive = true; //if color matches catcher, change to true
@@ -181,12 +189,11 @@ class Fallingthings {
   }
 }
 
-
 // Falling objects exntended classes
 class FallingthingsL extends Fallingthings {
   constructor(catcherColor) {
     super();
-    this.slope = 0.05; // later use rand(0.03,0.08)
+    this.slope = Math.random() * (0.07 - 0.04) + 0.04;
     this.x = rand(0, game.width / 5);
     this.y = rand(0, game.height / 16);
     this.color = this.weightedColors(catcherColor);
@@ -194,14 +201,23 @@ class FallingthingsL extends Fallingthings {
 
   fall(timeMultiplier) {
     this.speedY += this.gravity * timeMultiplier;
-    this.y += this.speedY;
-  // parabola - make it travel along a range of paths
+    this.y += this.speedY + this.gravitySpeed;
+    // parabola - make it travel along a range of paths
     this.x += Math.sqrt((this.y - game.height) / -this.slope) * timeMultiplier;
+    //this.bounce();
 
     if (this.y > game.height) {
+      hit.play();
       this.keeprendering = false;
     }
   }
+
+  //   bounce(){
+  //     if (this.y > game.height-this.radius) {
+  //  this.y =game.height-this.radius;
+  //  this.gravitySpeed = -(this.gravitySpeed * this.bounce);
+  // }
+  // }
 
   weightedColors(catcherColor) {
     // Creates a new array and fills it with the catcher color
@@ -216,7 +232,7 @@ class FallingthingsL extends Fallingthings {
 class FallingthingsR extends Fallingthings {
   constructor(catcherColor) {
     super();
-    this.slope = 0.05; // later use rand(0.03,0.08)
+    this.slope = Math.random() * (0.07 - 0.04) + 0.04;
     this.x = rand((game.width / 5) * 5, game.width);
     this.y = rand(0, game.height / 16);
     this.color = this.weightedColors(catcherColor);
@@ -224,10 +240,10 @@ class FallingthingsR extends Fallingthings {
   fall(timeMultiplier) {
     this.speedY += this.gravity * timeMultiplier;
     this.y += this.speedY;
-
     this.x -= Math.sqrt((this.y - game.height) / -this.slope) * timeMultiplier;
 
     if (this.y > game.height) {
+      hit.play();
       this.keeprendering = false;
     }
   }
@@ -237,7 +253,6 @@ class FallingthingsR extends Fallingthings {
     return this.newcolor;
   }
 }
-
 
 // Catcher array to hold all the catcher instances
 // Passes width, height,x-, y-, and key to activate
@@ -258,6 +273,24 @@ const catchersArray = [
   )),
 ];
 
+class Sound {
+  constructor(src) {
+    this.sound = document.createElement('audio');
+    this.sound.src = src;
+    this.sound.volume = 0.6;
+    this.sound.setAttribute('preload', 'auto');
+    this.sound.setAttribute('controls', 'none');
+    this.sound.style.display = 'none';
+    document.body.appendChild(this.sound);
+  }
+  play() {
+    this.sound.play();
+  }
+  stop() {
+    this.sound.pause();
+  }
+}
+
 //collision detection manages score + life keeping in the event of a collision
 function collisionDetection(obj, catcher) {
   // every time it updates, it checks if its at or past the collision line
@@ -270,6 +303,7 @@ function collisionDetection(obj, catcher) {
     // if keydown + matching
     // +score
     if (keydown && obj.color == catcher.color) {
+      plusScore.play();
       score++;
     }
     // if not matching + keydown >> -1 life
@@ -278,12 +312,12 @@ function collisionDetection(obj, catcher) {
       (!keydown && obj.color == catcher.color) ||
       (keydown && obj.color !== catcher.color)
     ) {
+      minusLife.play();
       lives -= 1;
     }
     /// maybe use switches
   }
 }
-
 
 // These functions all use setTimeout to set a random timeout until the next object is created/color swap
 // This is for more randomness
@@ -302,24 +336,27 @@ function spawnR() {
   }, rand(10, 4000));
 }
 
-function colorSwapL(){
+function colorSwapL() {
   catcherL.changeColor();
   setTimeout(function () {
     colorSwapL();
   }, rand(9000, 20000));
 }
 
-function colorSwapR(){
+function colorSwapR() {
   catcherR.changeColor();
   setTimeout(function () {
     colorSwapR();
   }, rand(9000, 20000));
 }
 
-
 // Initizes all the randomized generator functions for objects + catchers
 // Calls each randomizer function after a set time
 function init() {
+  bgmusic = new Sound('../untitled-game/audio/mix.mp3');
+  bgmusic.sound.volume = 0.3;
+  bgmusic.play();
+
   setTimeout(function () {
     spawnL();
   }, 500);
@@ -335,11 +372,15 @@ function init() {
   setTimeout(function () {
     colorSwapR();
   }, 5000);
+
+  hit = new Sound('../untitled-game/audio/bong_001.ogg');
+  plusScore = new Sound('../untitled-game/audio/phaserUp3.ogg');
+  minusLife = new Sound('../untitled-game/audio/phaserDown3.ogg');
+  catcherActive = new Sound('../untitled-game/audio/tone1.ogg');
 }
 
 /// This function is only in charge of rendering the current state of the game - *never call updates from render
 function render() {
-
   ctx.clearRect(0, 0, game.width, game.height);
   ctx.font = '30px Montserrat Subrayada';
   ctx.fillStyle = '#FFFFFF';
@@ -379,6 +420,7 @@ function updateFallingThings(timePassed) {
   // When the number of lives hits 0, stop tell the gameLoop to stop rendering
   if (lives == 0) {
     continueGame = false;
+    bgmusic.pause();
   }
 }
 
@@ -400,8 +442,8 @@ function gameLoop(now) {
     ctx.fillText(`${gameOver}`, 200, game.height / 2);
 
     //
-//1.
-// ctx.save + ctx. // for starting instructions
+    //1.
+    // ctx.save + ctx. // for starting instructions
   }
 }
 
@@ -414,10 +456,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 });
-
-
-
-
 
 // function startGame(){
 //   ctx.fillStyle = "white";
