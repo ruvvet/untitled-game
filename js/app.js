@@ -191,16 +191,42 @@ function init(colors, lives) {
       this.match = false;
       this.alive = true; //if color matches catcher, change to true
       this.keeprendering = true;
+
+
+      this.length = 5;
+      this.thickness = 5;
+
+      this.motionTrailArr = [];
+      this.motionTrailLength = 10;
+    }
+
+    lastPosition(x,y){
+      this.motionTrailArr.push({x:x,y:y});
+      if (this.motionTrailArr.length > this.motionTrailLength){
+        this.motionTrailArr.shift();
+      }
     }
 
     render() {
+
+      for (let i = 0; i < this.motionTrailArr.length; i++) {
+        let trailopacity = 100-((i+1)*10);
+        let trailradius = this.radius;//(i+1)/this.radius;
+        ctx.beginPath();
+        ctx.arc(this.motionTrailArr[i].x, this.motionTrailArr[i].y, trailradius, 0, 2 * Math.PI, true);
+        ctx.fillStyle = this.color + `${trailopacity}`;
+        ctx.fill();
+      }
+
+
+
       ctx.beginPath();
-      // x coor, y coor, radius, start angle, end angle
+      //x coor, y coor, radius, start angle, end angle
       ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
       ctx.fillStyle = this.color;
       ctx.fill();
       ctx.closePath();
-
+      this.lastPosition(this.x, this.y);
 
     }
   }
@@ -478,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('easy').addEventListener('click', function () {
     document.getElementById('easy').style.display = 'none';
     document.getElementById('hard').style.display = 'none';
-    init(colors.slice(0,2), 20);
+    init(colors.slice(rand(0,2),rand(3,4)), 20);
   });
 
   document.getElementById('hard').addEventListener('click', function () {
