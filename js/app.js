@@ -52,8 +52,12 @@ let catcherActive;
 let bgmusic;
 
 // Strings
-const gameOver = 'BIG F';
-const instructions = 'instructions go here';
+const gameOver = 'BIG F'.toUpperCase();;
+const instructions = "Press space to start".toUpperCase();
+const instructions2 = "Control L/R catchers with 'F' and 'J'".toUpperCase();
+const instructions3 = "Space to Pause".toUpperCase();
+
+
 
 /////////////////////////////////////////////////////////////////////////
 //FUNCTIONS + Classes
@@ -120,9 +124,9 @@ class Catcher {
 
   stroke() {
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 5;
+    ctx.shadowBlur = 10;
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = 7.5;
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(this.x + this.border, this.y);
     ctx.lineTo(this.x + this.width - this.border, this.y);
@@ -170,9 +174,9 @@ class Fallingthings {
     this.color = colors[rand(0, colors.length)];
     this.speedX = 0;
     this.speedY = 0;
-    this.gravity = 0.2;
-    this.gravitySpeed = 0;
-    this.bounce = 1;
+    this.gravity = 0.3;
+    //this.gravitySpeed = 0;
+    //TODO:this.bounce = 1;
     this.radius = 20;
     this.match = false;
     this.alive = true; //if color matches catcher, change to true
@@ -194,14 +198,14 @@ class FallingthingsL extends Fallingthings {
   constructor(catcherColor) {
     super();
     this.slope = Math.random() * (0.07 - 0.04) + 0.04;
-    this.x = rand(0, game.width / 5);
-    this.y = rand(0, game.height / 16);
+    this.x = rand(0, game.width / 10);
+    this.y = rand(0, game.height / 20);
     this.color = this.weightedColors(catcherColor);
   }
 
   fall(timeMultiplier) {
     this.speedY += this.gravity * timeMultiplier;
-    this.y += this.speedY + this.gravitySpeed;
+    this.y += this.speedY;// + this.gravitySpeed;
     // parabola - make it travel along a range of paths
     this.x += Math.sqrt((this.y - game.height) / -this.slope) * timeMultiplier;
     //this.bounce();
@@ -233,8 +237,8 @@ class FallingthingsR extends Fallingthings {
   constructor(catcherColor) {
     super();
     this.slope = Math.random() * (0.07 - 0.04) + 0.04;
-    this.x = rand((game.width / 5) * 5, game.width);
-    this.y = rand(0, game.height / 16);
+    this.x = rand((game.width / 10) * 10, game.width);
+    this.y = rand(0, game.height / 20);
     this.color = this.weightedColors(catcherColor);
   }
   fall(timeMultiplier) {
@@ -353,9 +357,9 @@ function colorSwapR() {
 // Initizes all the randomized generator functions for objects + catchers
 // Calls each randomizer function after a set time
 function init() {
-  bgmusic = new Sound('../untitled-game/audio/mix.mp3');
-  bgmusic.sound.volume = 0.3;
-  bgmusic.play();
+  // bgmusic = new Sound('../untitled-game/audio/mix.mp3');
+  // bgmusic.sound.volume = 0.3;
+  // bgmusic.play();
 
   setTimeout(function () {
     spawnL();
@@ -384,8 +388,9 @@ function render() {
   ctx.clearRect(0, 0, game.width, game.height);
   ctx.font = '30px Montserrat Subrayada';
   ctx.fillStyle = '#FFFFFF';
-  ctx.fillText(`Score: ${score}`, 10, 40);
-  ctx.fillText(`Lives: ${lives}`, game.width - 150, 40);
+  ctx.fillText(`Score: ${score}`, 100, 40);
+  ctx.fillText(`Lives: ${lives}`, game.width - 100, 40);
+  //ctx.save();
 
   // Renders catchers
   for (const catcher of catchersArray) {
@@ -420,7 +425,7 @@ function updateFallingThings(timePassed) {
   // When the number of lives hits 0, stop tell the gameLoop to stop rendering
   if (lives == 0) {
     continueGame = false;
-    bgmusic.pause();
+    // bgmusic.pause();
   }
 }
 
@@ -440,15 +445,23 @@ function gameLoop(now) {
     ctx.clearRect(0, 0, game.width, game.height);
     ctx.font = '200px Montserrat Subrayada';
     ctx.fillText(`${gameOver}`, 200, game.height / 2);
-
-    //
-    //1.
-    // ctx.save + ctx. // for starting instructions
   }
 }
 
+function startMessage(){
+  //ctx.restore();
+  ctx.font = '30px Montserrat Subrayada';
+  ctx.fillStyle = "white";
+  ctx.textAlign ="center";
+  ctx.fillText(`${instructions}`, getMiddleX, getMiddleY-30);
+  ctx.fillText(`${instructions2}`, getMiddleX, getMiddleY);
+  ctx.fillText(`${instructions3}`, getMiddleX, getMiddleY+30);
+}
+
+
 // After dom has loaded, check for space key press to initialize and start rendering
 document.addEventListener('DOMContentLoaded', function () {
+  startMessage();
   document.addEventListener('keyup', function (key) {
     if (key.key == ' ') {
       init();
@@ -457,57 +470,6 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
-// function startGame(){
-//   ctx.fillStyle = "white";
-//   ctx.textAlign ="center";
-//   ctx.font = "30px Montserrat Subrayada";
-//   ctx.fillText("Press Space to start", game.width/2, game.height / 2);
-//   ctx.fillText("Use 'f' and 'j' to catch the falling balls the match the color of the bar.", game.width/2, game.height / 2 + 30);
-//   ctx.fillText("Backspace to reset", game.width/2, game.height / 2 +60);
-// }
 
-// }
 
-// function draw(url)
-// {
-//     // Create an image object. This is not attached to the DOM and is not part of the page.
-//     var image = new Image();
 
-//     // When the image has loaded, draw it to the canvas
-//     image.onload = function()
-//     {
-//         ctx.drawImage(image, 360, 600, 200, 200);
-//         ctx.drawImage(image, 50, 600, 200, 200);
-//     }
-
-//     // Now set the source of the image that we want to load
-//     image.src = url;
-// }
-
-// draw('D:/SEI1019/ga-projects/untitled-game/img/nokey.gif');
-
-//TODO:
-
-// ADD DIRECTIONS BEFORE START
-
-// make the game playable for humans
-//primary gameplay loop - what's happening every second
-//secondary gameplay loop - levels
-
-//later
-// design updates
-
-// SFX
-// smoother falling animation
-// always hit the bar /w parabola
-
-// golden ball to get + lives
-
-//high scores - git.jist
-// menu
-// add tail to falling objects
-
-//mobile version
-
-////y = - (1/curve)(x**2) + game.height
-//x =Math.sqrt(y-game.height *(-10))

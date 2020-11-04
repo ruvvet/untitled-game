@@ -12,7 +12,8 @@ body {
 }
 
 body {
-  background-image: url('../img/background2.jpg');
+  background-color: black;
+  /* background-image: url('../img/background2.jpg'); */
   background-size: cover;
 }
 
@@ -30,10 +31,11 @@ width: 50%;
     height: 100%;
     width: 100%;
     z-index: 3;
+    border: 3px solid white;
     /* position: absolute;
     left:25%;
 top:5%;
-border: 3px solid white;
+
 height: 50%; */
   }
 
