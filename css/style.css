@@ -1,9 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat+Subrayada');
 
 @font-face {
-    font-family: 'Montserrat Subrayada', sans-serif;
+  font-family: 'Montserrat Subrayada', sans-serif;
 }
-
 
 html,
 body {
@@ -21,29 +20,113 @@ body {
   background-color: transparent;
   margin: 0 auto;
   margin-top: 5%;
-width: 50%;
+  width: 50%;
   height: 100%;
   z-index: 2;
 }
 
 #game {
-    background-color:black;
-    height: 100%;
-    width: 100%;
-    z-index: 3;
-    border: 3px solid white;
-    /* position: absolute;
-    left:25%;
-top:5%;
+  background-color: black;
+  height: 100%;
+  width: 100%;
+  z-index: 3;
+  border: 3px solid white;
+}
 
-height: 50%; */
-  }
+.modes{
 
-#rain{
-    width: 100%;
-    height: 100%;
-    background-color:transparent;
-    z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button {
+
+  display: inline-block;
+  min-width: 100px;
+  min-height: 100px;
+  /* font-family: 'Nunito', sans-serif;
+    font-size: 22px; */
+  text-transform: uppercase;
+  letter-spacing: 1.3px;
+  font-weight: 700;
+  color: #ffffff;
+  background: transparent;
+  /* background: #4FD1C5;
+  background: linear-gradient(90deg, rgba(129,230,217,1) 0%, rgba(79,209,197,1) 100%); */
+  border: none;
+  border-radius: 100px;
+  /* box-shadow: 12px 12px 24px rgba(79,209,197,.64); */
+  transition: all 0.3s ease-in-out 0s;
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  padding: 40px;
+  margin: 40px 0 0 0;
 }
 
 
+button::before {
+  content: '';
+  border-radius: 100px;
+  min-width: calc(100px + 12px);
+  min-height: calc(100px + 12px);
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 100px rgba(255, 255, 255, 0.64);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: all 0.3s ease-in-out 0s;
+}
+
+#easy:hover,
+#easy:focus {
+  color: #5ccc6b;
+  transform: translateY(-6px);
+}
+
+#hard:hover,
+#hard:focus {
+  color: #df4b4b;
+  transform: translateY(-6px);
+}
+
+button:hover::before,
+button:focus::before {
+  opacity: 1;
+}
+
+button::after {
+  content: '';
+  width: 30px;
+  height: 30px;
+  border-radius: 100%;
+  border: 6px solid #ffffff;
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: ring 1.5s infinite;
+}
+
+button:hover::after,
+button:focus::after {
+  animation: none;
+  display: none;
+}
+
+@keyframes ring {
+  0% {
+    width: 30px;
+    height: 30px;
+    opacity: 1;
+  }
+  100% {
+    width: 100px;
+    height: 100px;
+    opacity: 0;
+  }
+}
