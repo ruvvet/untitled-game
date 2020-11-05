@@ -6,8 +6,7 @@
 
 html,
 body {
-  margin: 0;
-  padding: 0;
+
 }
 
 body {
@@ -17,31 +16,69 @@ body {
 }
 
 .container {
-  background-color: transparent;
   margin: 0 auto;
-  margin-top: 5%;
-  width: 50%;
-  height: 100%;
+  background-color: transparent;
   z-index: 2;
 }
 
 #game {
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 3%;
+  display: block;
   background-color: black;
-  height: 100%;
-  width: 100%;
+  height: auto;
+  width: auto;
   z-index: 3;
   border: 3px solid white;
 }
 
-.modes{
+footer{
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  flex-direction: column;
+}
+h1{
+  font-size: 15px;
+  font-family: 'Montserrat Subrayada';
+  color: white;
+  text-align: center;
+  display: inline-block;
+}
+p{
+  font-family: 'Montserrat Subrayada';
+  color: white;
+  text-align: center;
+  font-size: 10px;
+  display: inline-block;
 
+}
+
+img, a{
+
+  height: 30px;
+  width: 30px;
+  padding-left: 10px;
+}
+
+
+#id{
+  display: inline-block;
+}
+
+
+
+/* button stuff */
+.modes{
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .button {
-
   display: inline-block;
   min-width: 100px;
   min-height: 100px;
@@ -61,10 +98,9 @@ body {
   cursor: pointer;
   outline: none;
   position: relative;
-  padding: 40px;
-  margin: 40px 0 0 0;
+  /* padding: 40px;
+  margin: 40px 0 0 0; */
 }
-
 
 button::before {
   content: '';
