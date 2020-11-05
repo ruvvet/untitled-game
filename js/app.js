@@ -1,12 +1,10 @@
 /////////////////////////////////////////////////////////////////////////
 // UNTITLED GAME
 // JENNY FENG
-// LAST UPDATED 11.03.2020
 /////////////////////////////////////////////////////////////////////////
 
 //GLOBAL DEFINITIONS/////////////////////////////////////////////////////
-// Setting up Canvas
-// Get canvas element from html doc
+// Setting up Canvas - Get canvas element from html doc
 // set drawing context for canvas area w/ 2D attributes
 const game = document.getElementById('game');
 const ctx = game.getContext('2d');
@@ -17,14 +15,18 @@ const height = getComputedStyle(game).height;
 const width = getComputedStyle(game).width;
 game.height = parseInt(height);
 game.width = parseInt(width);
+// TODO: find a way to make this portrait size
+// game.width = window.innerWidth;
+// game.height = window.innerHeight;
 
 // Array of different colors that will be used
 //const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564']; //pastels
-const colors = ['#F5759B', '#D91D25', '#F7AE00', '#01C013', '#008DD4']; //solids
+const allColors = ['#F5759B', '#D91D25', '#F7AE00', '#01C013', '#008DD4'];
+let colors = []; //solids
 
 // For glowing effects of drawn elements
 ctx.lineJoin = 'round'; //rounded corners
-ctx.globalCompositeOperation = 'lighter'; //lightens overlapping colors
+//ctx.globalCompositeOperation = 'lighter'; //lightens overlapping colors
 
 // Constant variables
 const getMiddleX = game.width / 2;
@@ -37,7 +39,6 @@ const catcherYpos = game.height - catcherHeight;
 // Initialized variables
 let continueGame = true;
 let score = 0;
-let lives = 50;
 let fallingArray = []; //the array of falling objects that are alive
 let catcherL;
 let catcherR;
@@ -53,20 +54,285 @@ let bgmusic;
 
 // Strings
 const gameOver = 'BIG F'.toUpperCase();
-const instructions = 'Press space to start'.toUpperCase();
+const instructions = 'Press space to start/pause'.toUpperCase();
 const instructions2 = "Control L/R catchers with 'F' and 'J'".toUpperCase();
-const instructions3 = 'Space to Pause'.toUpperCase();
+const instructions3 = 'Catch matching colors.'.toUpperCase();
 
 // Globally used rand function
 function rand(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
 }
 
-function init(colors, lives) {
+/////////////////////////////////////////////////////////////////////////
+//FUNCTIONS + Classes
+/////////////////////////////////////////////////////////////////////////
 
-  colors = colors;
-  lives = lives;
+// The catcher class
+// checks for matching keydown listner
+// renders
+// randomly changes colors
+class Catcher {
+  constructor(width, height, x, y, key) {
+    this.color = colors[rand(0, colors.length)];
+    this.width = width;
+    this.height = height;
+    this.x = x;
+    this.y = y;
+    this.key = key;
+    this.keydown = false;
 
+    document.addEventListener(
+      'keydown',
+      function (key) {
+        if (key.key == this.key) {
+          catcherActive.play();
+          this.keydown = true;
+        }
+      }.bind(this)
+    );
+
+    document.addEventListener(
+      'keyup',
+      function (key) {
+        if (key.key == this.key) {
+          this.keydown = false;
+        }
+      }.bind(this)
+    );
+  }
+
+  render() {
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    //this.stroke();
+    if (this.keydown) {
+      ctx.fillRect(this.x - 5, this.y - 5, this.width + 10, this.height + 10);
+    }
+    if (!this.keydown) {
+      ctx.fillStyle = this.color;
+    }
+  }
+
+  changeColor() {
+    // pick a new color not equal to previous color
+    const otherColors = colors.filter((col) => col !== this.color);
+    this.color = otherColors[rand(0, otherColors.length)];
+  }
+
+  stroke() {
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(this.x + this.border, this.y);
+    ctx.lineTo(this.x + this.width - this.border, this.y);
+    ctx.quadraticCurveTo(
+      this.x + this.width - this.border,
+      this.y,
+      this.x + this.width,
+      this.y + this.border
+    );
+    ctx.lineTo(this.x + this.width, this.y + this.height - this.border);
+    ctx.quadraticCurveTo(
+      this.x + this.width,
+      this.y + this.height - this.border,
+      this.x + this.width - this.border,
+      this.y + this.height
+    );
+    ctx.lineTo(this.x + this.border, this.y + this.height);
+    ctx.quadraticCurveTo(
+      this.x + this.border,
+      this.y + this.height,
+      this.x,
+      this.y + this.height - this.border
+    );
+    ctx.lineTo(this.x, this.y + this.border);
+    ctx.quadraticCurveTo(
+      this.x,
+      this.y + this.border,
+      this.x + this.border,
+      this.y
+    );
+    ctx.closePath();
+    ctx.stroke();
+  }
+}
+
+// Flling objects parent class
+// renders
+// updates position as it falls
+class Fallingthings {
+  //need an extended class
+  constructor(colorweight) {
+    this.x = rand(game.width / 4, (game.width / 4) * 3);
+    this.y = rand(0, game.height / 8);
+    this.color = colors[rand(0, colors.length)];
+    this.speedX = 0;
+    this.speedY = 0;
+    this.gravity = 0.3;
+    this.gravitySpeed = 0;
+    //TODO:
+    this.bounce = 1;
+    this.radius = 20;
+    this.match = false;
+    this.alive = true; //if color matches catcher, change to true
+    this.keeprendering = true;
+    this.colorweight = colorweight;
+
+    this.motionTrailArr = [];
+    this.motionTrailLength = 20;
+  }
+
+  lastPosition(x, y) {
+    // called after the object is moved to a new position
+    // saves it in the motion trail array
+    // deletes the first element to constantly update
+    this.motionTrailArr.push({ x: x, y: y });
+    if (this.motionTrailArr.length > this.motionTrailLength) {
+      this.motionTrailArr.shift();
+    }
+  }
+
+  render() {
+    // Renders the motion trail path based on the positions of the ball
+    // in the last 10 frames
+    for (let i = 0; i < this.motionTrailArr.length; i++) {
+      // opacity should be in reverse
+      // the last element of motion trail array is the closest to the current position
+      let trailopacity = Math.max(0.75, i / 20); //i/20*.75
+      let trailradius = (i / 20) * this.radius;
+
+      ctx.beginPath();
+      ctx.arc(
+        this.motionTrailArr[i].x,
+        this.motionTrailArr[i].y,
+        trailradius,
+        0,
+        2 * Math.PI,
+        true
+      );
+      //#00000090
+      // converts to hex
+
+      //use begin path to create a raindrop shape
+
+      //ctx.fillStyle = `${this.color}${trailopacity.toString(16)}`;
+      // parse hexadecimal color substring as 16 radix (hexadecimal)
+      //turns to rgb values
+      const r = parseInt(this.color.substring(1, 3), 16);
+      const g = parseInt(this.color.substring(3, 5), 16);
+      const b = parseInt(this.color.substring(5, 7), 16);
+      ctx.fillStyle = `rgba(${r},${g},${b},${trailopacity})`;
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    //x coor, y coor, radius, start angle, end angle
+    ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+    ctx.fillStyle = this.color;
+    ctx.fill();
+    ctx.closePath();
+  }
+}
+
+// Falling objects exntended classes
+class FallingthingsL extends Fallingthings {
+  constructor(catcherColor) {
+    super();
+    this.slope = Math.random() * (0.09 - 0.04) + 0.04;
+    this.x = rand(0, game.width / 10);
+    this.y = rand(0, game.height / 20);
+    this.color = this.weightedColors(catcherColor);
+  }
+
+  fall(timeMultiplier) {
+    this.lastPosition(this.x, this.y);
+
+    this.speedY += this.gravity * timeMultiplier;
+    this.y += this.speedY + this.gravitySpeed;
+    // parabola - make it travel along a range of paths
+    this.x += Math.sqrt((this.y - game.height) / -this.slope) * timeMultiplier;
+    this.bouncey();
+
+    if (this.y > game.height) {
+      hit.play();
+      this.keeprendering = false;
+    }
+  }
+
+  bouncey() {
+    if (this.y > game.height - this.radius) {
+      this.y = game.height - this.radius;
+      //this.gravitySpeed = -(this.gravitySpeed * this.bounce);
+      this.speedY = -this.speedY * 0.5;
+      //TODO:
+    }
+  }
+
+  weightedColors(catcherColor) {
+    // Creates a new array and fills it with the catcher color
+    // We then concatenate the original colors list + the new array for a weighted array list
+    this.weightedColor = new Array(this.colorweight)
+      .fill(catcherColor)
+      .concat(colors);
+    // Then we return a random color from the weighted array
+    this.newcolor = this.weightedColor[rand(0, this.weightedColor.length)];
+    return this.newcolor;
+  }
+}
+
+//TODO: give trail here
+
+class FallingthingsR extends Fallingthings {
+  constructor(catcherColor) {
+    super();
+    this.slope = Math.random() * (0.09 - 0.04) + 0.04;
+    this.x = rand((game.width / 10) * 10, game.width);
+    this.y = rand(0, game.height / 20);
+    this.color = this.weightedColors(catcherColor);
+  }
+  fall(timeMultiplier) {
+    this.speedY += this.gravity * timeMultiplier;
+    this.y += this.speedY;
+    this.x -= Math.sqrt((this.y - game.height) / -this.slope) * timeMultiplier;
+
+    if (this.y > game.height) {
+      hit.play();
+      this.keeprendering = false;
+    }
+  }
+  weightedColors(catcherColor) {
+    this.weightedColor = new Array(5).fill(catcherColor).concat(colors);
+    this.newcolor = this.weightedColor[rand(0, this.weightedColor.length)];
+    return this.newcolor;
+  }
+}
+
+class Sound {
+  constructor(src) {
+    this.sound = document.createElement('audio');
+    this.sound.src = src;
+    this.sound.volume = 0.6;
+    this.sound.setAttribute('preload', 'auto');
+    this.sound.setAttribute('controls', 'none');
+    this.sound.style.display = 'none';
+    document.body.appendChild(this.sound);
+  }
+  play() {
+    this.sound.play();
+  }
+  stop() {
+    this.sound.pause();
+  }
+}
+
+function init(chosenColors, colorweight, lives) {
+  // The new values of the colors array, # of lives, and weighted colors
+  // Based on mode/difficulty
+  colors = chosenColors;
+
+  // Start msg w/ instructions
   startMessage();
   document.addEventListener('keyup', function (key) {
     if (key.key == ' ') {
@@ -74,229 +340,6 @@ function init(colors, lives) {
       requestAnimationFrame(gameLoop);
     }
   });
-
-  /////////////////////////////////////////////////////////////////////////
-  //FUNCTIONS + Classes
-  /////////////////////////////////////////////////////////////////////////
-
-  // The catcher class
-  // checks for matching keydown listner
-  // renders
-  // randomly changes colors
-
-  class Catcher {
-    constructor(width, height, x, y, key) {
-      this.color = colors[rand(0, colors.length)];
-      this.width = width;
-      this.height = height;
-      this.x = x;
-      this.y = y;
-      this.key = key;
-      this.keydown = false;
-
-      document.addEventListener(
-        'keydown',
-        function (key) {
-          if (key.key == this.key) {
-            catcherActive.play();
-            this.keydown = true;
-          }
-        }.bind(this)
-      );
-
-      document.addEventListener(
-        'keyup',
-        function (key) {
-          if (key.key == this.key) {
-            this.keydown = false;
-          }
-        }.bind(this)
-      );
-    }
-
-    render() {
-      ctx.fillStyle = this.color;
-      ctx.fillRect(this.x, this.y, this.width, this.height);
-      //this.stroke();
-      if (this.keydown) {
-        ctx.fillRect(this.x - 5, this.y - 5, this.width + 10, this.height + 10);
-      }
-      if (!this.keydown) {
-        ctx.fillStyle = this.color;
-      }
-    }
-
-    changeColor() {
-      // pick a new color not equal to previous color
-      const otherColors = colors.filter((col) => col !== this.color);
-      this.color = otherColors[rand(0, otherColors.length)];
-    }
-
-    stroke() {
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 10;
-      ctx.strokeStyle = this.color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(this.x + this.border, this.y);
-      ctx.lineTo(this.x + this.width - this.border, this.y);
-      ctx.quadraticCurveTo(
-        this.x + this.width - this.border,
-        this.y,
-        this.x + this.width,
-        this.y + this.border
-      );
-      ctx.lineTo(this.x + this.width, this.y + this.height - this.border);
-      ctx.quadraticCurveTo(
-        this.x + this.width,
-        this.y + this.height - this.border,
-        this.x + this.width - this.border,
-        this.y + this.height
-      );
-      ctx.lineTo(this.x + this.border, this.y + this.height);
-      ctx.quadraticCurveTo(
-        this.x + this.border,
-        this.y + this.height,
-        this.x,
-        this.y + this.height - this.border
-      );
-      ctx.lineTo(this.x, this.y + this.border);
-      ctx.quadraticCurveTo(
-        this.x,
-        this.y + this.border,
-        this.x + this.border,
-        this.y
-      );
-      ctx.closePath();
-      ctx.stroke();
-    }
-  }
-
-  //falling objects class
-  // renders
-  // updates position as it falls
-
-  class Fallingthings {
-    //need an extended class
-    constructor() {
-      this.x = rand(game.width / 4, (game.width / 4) * 3);
-      this.y = rand(0, game.height / 8);
-      this.color = colors[rand(0, colors.length)];
-      this.speedX = 0;
-      this.speedY = 0;
-      this.gravity = 0.3;
-      //this.gravitySpeed = 0;
-      //TODO:this.bounce = 1;
-      this.radius = 20;
-      this.match = false;
-      this.alive = true; //if color matches catcher, change to true
-      this.keeprendering = true;
-
-
-      this.length = 5;
-      this.thickness = 5;
-
-      this.motionTrailArr = [];
-      this.motionTrailLength = 10;
-    }
-
-    lastPosition(x,y){
-      this.motionTrailArr.push({x:x,y:y});
-      if (this.motionTrailArr.length > this.motionTrailLength){
-        this.motionTrailArr.shift();
-      }
-    }
-
-    render() {
-
-      for (let i = 0; i < this.motionTrailArr.length; i++) {
-        let trailopacity = 100-((i+1)*10);
-        let trailradius = this.radius;//(i+1)/this.radius;
-        ctx.beginPath();
-        ctx.arc(this.motionTrailArr[i].x, this.motionTrailArr[i].y, trailradius, 0, 2 * Math.PI, true);
-        ctx.fillStyle = this.color + `${trailopacity}`;
-        ctx.fill();
-      }
-
-
-
-      ctx.beginPath();
-      //x coor, y coor, radius, start angle, end angle
-      ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
-      ctx.fillStyle = this.color;
-      ctx.fill();
-      ctx.closePath();
-      this.lastPosition(this.x, this.y);
-
-    }
-  }
-
-  // Falling objects exntended classes
-  class FallingthingsL extends Fallingthings {
-    constructor(catcherColor) {
-      super();
-      this.slope = Math.random() * (0.09 - 0.04) + 0.04;
-      this.x = rand(0, game.width / 10);
-      this.y = rand(0, game.height / 20);
-      this.color = this.weightedColors(catcherColor);
-    }
-
-    fall(timeMultiplier) {
-      this.speedY += this.gravity * timeMultiplier;
-      this.y += this.speedY; // + this.gravitySpeed;
-      // parabola - make it travel along a range of paths
-      this.x +=
-        Math.sqrt((this.y - game.height) / -this.slope) * timeMultiplier;
-      //this.bounce();
-
-      if (this.y > game.height) {
-        hit.play();
-        this.keeprendering = false;
-      }
-    }
-
-    //   bounce(){
-    //     if (this.y > game.height-this.radius) {
-    //  this.y =game.height-this.radius;
-    //  this.gravitySpeed = -(this.gravitySpeed * this.bounce);
-    // }
-    // }
-
-    weightedColors(catcherColor) {
-      // Creates a new array and fills it with the catcher color
-      // We then concatenate the original colors list + the new array for a weighted array list
-      this.weightedColor = new Array(5).fill(catcherColor).concat(colors);
-      // Then we return a random color from the weighted array
-      this.newcolor = this.weightedColor[rand(0, this.weightedColor.length)];
-      return this.newcolor;
-    }
-  }
-
-  class FallingthingsR extends Fallingthings {
-    constructor(catcherColor) {
-      super();
-      this.slope = Math.random() * (0.09 - 0.04) + 0.04;
-      this.x = rand((game.width / 10) * 10, game.width);
-      this.y = rand(0, game.height / 20);
-      this.color = this.weightedColors(catcherColor);
-    }
-    fall(timeMultiplier) {
-      this.speedY += this.gravity * timeMultiplier;
-      this.y += this.speedY;
-      this.x -=
-        Math.sqrt((this.y - game.height) / -this.slope) * timeMultiplier;
-
-      if (this.y > game.height) {
-        hit.play();
-        this.keeprendering = false;
-      }
-    }
-    weightedColors(catcherColor) {
-      this.weightedColor = new Array(5).fill(catcherColor).concat(colors);
-      this.newcolor = this.weightedColor[rand(0, this.weightedColor.length)];
-      return this.newcolor;
-    }
-  }
 
   // Catcher array to hold all the catcher instances
   // Passes width, height,x-, y-, and key to activate
@@ -316,24 +359,6 @@ function init(colors, lives) {
       'j'
     )),
   ];
-
-  class Sound {
-    constructor(src) {
-      this.sound = document.createElement('audio');
-      this.sound.src = src;
-      this.sound.volume = 0.6;
-      this.sound.setAttribute('preload', 'auto');
-      this.sound.setAttribute('controls', 'none');
-      this.sound.style.display = 'none';
-      document.body.appendChild(this.sound);
-    }
-    play() {
-      this.sound.play();
-    }
-    stop() {
-      this.sound.pause();
-    }
-  }
 
   //collision detection manages score + life keeping in the event of a collision
   function collisionDetection(obj, catcher) {
@@ -357,9 +382,10 @@ function init(colors, lives) {
         (keydown && obj.color !== catcher.color)
       ) {
         minusLife.play();
-        lives -= 1;
+        lives--;
       }
-      /// maybe use switches
+
+      //TODO: maybe only bounce if you catch it
     }
   }
 
@@ -367,14 +393,14 @@ function init(colors, lives) {
   // This is for more randomness
   function spawnL() {
     // we pass the catcher on the opposite side since it is supposed to match that one
-    fallingArray.push(new FallingthingsL(catcherR.color));
+    fallingArray.push(new FallingthingsL(catcherR.color, colorweight));
     setTimeout(function () {
       spawnL();
     }, rand(10, 4000));
   }
 
   function spawnR() {
-    fallingArray.push(new FallingthingsR(catcherL.color));
+    fallingArray.push(new FallingthingsR(catcherL.color, colorweight));
     setTimeout(function () {
       spawnR();
     }, rand(10, 4000));
@@ -484,7 +510,7 @@ function init(colors, lives) {
       // game is over
       ctx.clearRect(0, 0, game.width, game.height);
       ctx.font = '100px Montserrat Subrayada';
-      ctx.fillText(`${gameOver}`, getMiddleX-100, getMiddleY);
+      ctx.fillText(`${gameOver}`, getMiddleX - 100, getMiddleY);
     }
   }
 
@@ -504,12 +530,19 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('easy').addEventListener('click', function () {
     document.getElementById('easy').style.display = 'none';
     document.getElementById('hard').style.display = 'none';
-    init(colors.slice(rand(0,2),rand(3,4)), 20);
+    const randomCol = allColors[rand(0, allColors.length)];
+    const otherCol = allColors.filter((col) => col !== randomCol);
+    const randomCol2 = otherCol[rand(0, otherCol.length)];
+    init([randomCol, randomCol2], 5, 15);
   });
 
   document.getElementById('hard').addEventListener('click', function () {
     document.getElementById('easy').style.display = 'none';
     document.getElementById('hard').style.display = 'none';
-    init(colors, 10);
+    init(allColors, 3, 10);
   });
 });
+
+
+//todo: golden ball
+// use drawpath if i want a shape
