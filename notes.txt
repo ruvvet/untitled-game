@@ -50,3 +50,23 @@ https://codepen.io/ryanmcnz/pen/KppJxJ
 droppign visualizer
 https://www.digitalocean.com/community/tutorials/js-canvas-animations-gravity
 https://codepen.io/alligatorio/pen/YzzzJjP
+
+
+
+// function draw(url)
+// {
+//     // Create an image object. This is not attached to the DOM and is not part of the page.
+//     var image = new Image();
+
+//     // When the image has loaded, draw it to the canvas
+//     image.onload = function()
+//     {
+//         ctx.drawImage(image, 360, 600, 200, 200);
+//         ctx.drawImage(image, 50, 600, 200, 200);
+//     }
+
+//     // Now set the source of the image that we want to load
+//     image.src = url;
+// }
+
+// draw('D:/SEI1019/ga-projects/untitled-game/img/nokey.gif');

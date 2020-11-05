@@ -1,9 +1,9 @@
-/////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 // UNTITLED GAME
 // JENNY FENG
-/////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-//GLOBAL DEFINITIONS/////////////////////////////////////////////////////
+// GLOBAL DEFINITIONS ////////////////////////////////////////////////////
 // Setting up Canvas - Get canvas element from html doc
 // set drawing context for canvas area w/ 2D attributes
 const game = document.getElementById('game');
@@ -11,11 +11,6 @@ const ctx = game.getContext('2d');
 // Scaling canvas - default is 300x150
 // Use getComputedStyle to grab the css h + w attributes of game
 //and set the h+w manually
-// const height = getComputedStyle(game).height;
-// const width = getComputedStyle(game).width;
-// game.height = parseInt(height);
-// game.width = parseInt(width);
-// TODO: find a way to make this portrait size
 game.width = window.innerWidth / 4;
 game.height = window.innerHeight * 0.75;
 
@@ -34,10 +29,11 @@ const getMiddleY = game.height / 2;
 const catcherWidth = (game.width / 2) * 0.7;
 const catcherHeight = game.height / 20;
 const catcherXpos = (getMiddleX - catcherWidth) / 2;
-const catcherYpos = game.height - catcherHeight;
+const catcherYpos = game.height - catcherHeight * 2;
 
 // Initialized variables
 let continueGame = true;
+let pause = false;
 let score = 0;
 let fallingArray = []; //the array of falling objects that are alive
 let catcherL;
@@ -55,18 +51,16 @@ let bgmusic;
 // Strings
 const gameOver = 'BIG F'.toUpperCase();
 const instructions = 'Press space to start/pause'.toUpperCase();
-const instructions2 = "Control L/R catchers with 'F' and 'J'".toUpperCase();
-const instructions3 = 'Catch matching colors.'.toUpperCase();
+const instructions2 = 'Use F & J keys'.toUpperCase();
+const instructions3 = 'Catch matching colors'.toUpperCase();
+const instructions4 = 'Beat your own High Score'.toUpperCase();
 
-// Globally used rand function
+// GLOBAL FUNCTIONS //////////////////////////////////////////////////////
 function rand(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
 }
 
-/////////////////////////////////////////////////////////////////////////
-//FUNCTIONS + Classes
-/////////////////////////////////////////////////////////////////////////
-
+// CLASSES ///////////////////////////////////////////////////////////////
 // The catcher class
 // checks for matching keydown listner
 // renders
@@ -104,7 +98,7 @@ class Catcher {
   render() {
     ctx.fillStyle = this.color;
     ctx.fillRect(this.x, this.y, this.width, this.height);
-    //this.stroke();
+    //TODO: turn this on? this.stroke();
     if (this.keydown) {
       ctx.fillRect(this.x - 5, this.y - 5, this.width + 10, this.height + 10);
     }
@@ -159,7 +153,7 @@ class Catcher {
   }
 }
 
-// Flling objects parent class
+// Falling objects parent class
 // renders
 // updates position as it falls
 class Fallingthings {
@@ -237,6 +231,25 @@ class Fallingthings {
     ctx.fill();
     ctx.closePath();
   }
+
+  bounceObj() {
+    if (this.y > catcherYpos - this.radius) {
+      this.y = catcherYpos - this.radius;
+      //this.gravitySpeed = -(this.gravitySpeed * this.bounce);
+      this.speedY = -this.speedY * 0.65;
+    }
+  }
+
+  weightedColors(catcherColor) {
+    // Creates a new array and fills it with the catcher color
+    // We then concatenate the original colors list + the new array for a weighted array list
+    this.weightedColor = new Array(this.colorweight)
+      .fill(catcherColor)
+      .concat(colors);
+    // Then we return a random color from the weighted array
+    this.newcolor = this.weightedColor[rand(0, this.weightedColor.length)];
+    return this.newcolor;
+  }
 }
 
 // Falling objects exntended classes
@@ -269,25 +282,6 @@ class FallingthingsL extends Fallingthings {
       this.keeprendering = false;
     }
   }
-
-  bounceObj() {
-    if (this.y > game.height - this.radius) {
-      this.y = game.height - this.radius;
-      //this.gravitySpeed = -(this.gravitySpeed * this.bounce);
-      this.speedY = -this.speedY * 0.65;
-    }
-  }
-
-  weightedColors(catcherColor) {
-    // Creates a new array and fills it with the catcher color
-    // We then concatenate the original colors list + the new array for a weighted array list
-    this.weightedColor = new Array(this.colorweight)
-      .fill(catcherColor)
-      .concat(colors);
-    // Then we return a random color from the weighted array
-    this.newcolor = this.weightedColor[rand(0, this.weightedColor.length)];
-    return this.newcolor;
-  }
 }
 
 class FallingthingsR extends Fallingthings {
@@ -312,24 +306,9 @@ class FallingthingsR extends Fallingthings {
       this.keeprendering = false;
     }
   }
-
-  bounceObj() {
-    if (this.y > game.height - this.radius) {
-      this.y = game.height - this.radius;
-      //this.gravitySpeed = -(this.gravitySpeed * this.bounce);
-      this.speedY = -this.speedY * 0.65;
-    }
-  }
-
-  weightedColors(catcherColor) {
-    this.weightedColor = new Array(this.colorweight)
-      .fill(catcherColor)
-      .concat(colors);
-    this.newcolor = this.weightedColor[rand(0, this.weightedColor.length)];
-    return this.newcolor;
-  }
 }
 
+// Sound class that manages all the SFX
 class Sound {
   constructor(src) {
     this.sound = document.createElement('audio');
@@ -348,6 +327,11 @@ class Sound {
   }
 }
 
+// INIT //////////////////////////////////////////////////////////////////
+// Things inside are not global, only exist inside the init scope
+// Init handles all initialization and creation of the actual game objects + state
+// Should not create new functional functions/etc in here
+//TODO: refactor this.
 function init(chosenColors, colorweight, lives) {
   // The new values of the colors array, # of lives, and weighted colors
   // Based on mode/difficulty
@@ -355,14 +339,20 @@ function init(chosenColors, colorweight, lives) {
 
   // Start msg w/ instructions
   startMessage();
-  document.addEventListener('keyup', function (key) {
+
+  document.addEventListener('keyup', startGame);
+
+  function startGame(key) {
     if (key.key == ' ') {
       initGame();
       requestAnimationFrame(gameLoop);
+      // need to remove event listener otherwise it fucks itself
+      document.removeEventListener('keyup', startGame);
     }
-  });
+  }
 
-  // Catcher array to hold all the catcher instances
+
+   // Catcher array to hold all the catcher instances
   // Passes width, height,x-, y-, and key to activate
   const catchersArray = [
     (catcherL = new Catcher(
@@ -387,7 +377,7 @@ function init(chosenColors, colorweight, lives) {
     // so its detecting one object multiple times as its updating every few ms
     //
 
-    if (obj.y > game.height - catcher.height - obj.radius) {
+    if (obj.y > catcherYpos - obj.radius) {
       // if it passes the floor, take it out of the array
       const keydown = catcher.keydown;
       obj.alive = false;
@@ -406,6 +396,7 @@ function init(chosenColors, colorweight, lives) {
       ) {
         minusLife.play();
         lives--;
+        //TODO: FIX LIFE LOGIC. ITS FUCKED
       }
 
       //TODO: do we still need obj.alive???? - yes i think we do. its no longer counting for points
@@ -419,14 +410,14 @@ function init(chosenColors, colorweight, lives) {
     fallingArray.push(new FallingthingsL(catcherR.color, colorweight));
     setTimeout(function () {
       spawnL();
-    }, rand(5000, 6000)); ///3000,4000
+    }, rand(1000, 6000)); ///3000,4000
   }
 
   function spawnR() {
     fallingArray.push(new FallingthingsR(catcherL.color, colorweight));
     setTimeout(function () {
       spawnR();
-    }, rand(5000, 6000));
+    }, rand(1000, 6000));
   }
 
   function colorSwapL() {
@@ -518,13 +509,35 @@ function init(chosenColors, colorweight, lives) {
     }
   }
 
+  function pauseGame(key){
+    if (key.key == ' ') {
+      pause = (pause ===true) ? false: true;
+    }
+    if (pause){
+      ctx.clearRect(0, 0, game.width, game.height);
+      ctx.fillText(`pause`, getMiddleX, getMiddleY);
+      console.log('successfully paused');
+
+    } else if (!pause){
+    console.log('unpause here')}
+
+  }
+
   function gameLoop(now) {
+    document.addEventListener('keyup', pauseGame);
+
+
+
+    // TODO: this might fuck with lastloop
+    if (!pause){
+
     // Now  var is the dom timestamp in ms
     // lastloop var is the timestamp of the time we last called gameloop
     timePassed = (now - lastLoop) / 1000;
     lastLoop = now;
     updateFallingThings(timePassed);
     render();
+    console.log('things are still being updated/rendered')
 
     if (continueGame) {
       // continue rendering with each gameloop
@@ -532,19 +545,29 @@ function init(chosenColors, colorweight, lives) {
     } else {
       // game is over
       ctx.clearRect(0, 0, game.width, game.height);
-      ctx.font = '100px Montserrat Subrayada';
-      ctx.fillText(`${gameOver}`, getMiddleX - 100, getMiddleY);
+      ctx.font = '80px Montserrat Subrayada';
+      ctx.fillText(`${gameOver}`, getMiddleX, getMiddleY);
     }
+  }
+  else if (pause){
+    ctx.clearRect(0, 0, game.width, game.height);
+    ctx.fillText(`pause`, getMiddleX, getMiddleY);
+    if (!pause){
+      gameLoop(now);
+    }
+
+  }
   }
 
   function startMessage() {
     //ctx.restore();
-    ctx.font = '30px Montserrat Subrayada';
+    ctx.font = '20px Montserrat Subrayada';
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
-    ctx.fillText(`${instructions}`, getMiddleX, getMiddleY - 30);
+    ctx.fillText(`${instructions}`, getMiddleX, getMiddleY - 20);
     ctx.fillText(`${instructions2}`, getMiddleX, getMiddleY);
-    ctx.fillText(`${instructions3}`, getMiddleX, getMiddleY + 30);
+    ctx.fillText(`${instructions3}`, getMiddleX, getMiddleY + 20);
+    ctx.fillText(`${instructions4}`, getMiddleX, getMiddleY + 40);
   }
 }
 
