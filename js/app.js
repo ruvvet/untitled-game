@@ -35,28 +35,22 @@ const catcherXpos = (getMiddleX - catcherWidth) / 2;
 const catcherYpos = game.height - catcherHeight * 2;
 
 // Initialized variables
+let gameState = null;
 let continueGame = false;
 let pause = false;
-
-//let gameState =
 let score = 0;
+let lives = 0;
 let fallingArray = []; //the array of falling objects that are alive
 let megaArray = [];
 let catcherL;
 let catcherR;
+
 let timePassed = 0;
 let lastLoop = 0;
-let lives = 20;
+
 // when using OR, if thing on left is falsy, then use the right side of OR
 // doesnt evaluate right side
 let highScore = localStorage.getItem('highScore') || 0;
-
-// Audio
-let hit;
-let plusScore;
-let minusLife;
-let catcherActive;
-let bgm;
 
 // Strings
 const gameOver = 'BIG F'.toUpperCase();
@@ -110,7 +104,8 @@ class Catcher {
   render() {
     ctx.fillStyle = this.color;
     ctx.fillRect(this.x, this.y, this.width, this.height);
-    //TODO: turn this on? this.stroke();
+    //TODO: turn this on?
+    this.stroke();
     if (this.keydown) {
       ctx.fillRect(this.x - 5, this.y - 5, this.width + 10, this.height + 10);
     }
@@ -126,42 +121,42 @@ class Catcher {
   }
 
   stroke() {
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 10;
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(this.x + this.border, this.y);
-    ctx.lineTo(this.x + this.width - this.border, this.y);
-    ctx.quadraticCurveTo(
-      this.x + this.width - this.border,
-      this.y,
-      this.x + this.width,
-      this.y + this.border
-    );
-    ctx.lineTo(this.x + this.width, this.y + this.height - this.border);
-    ctx.quadraticCurveTo(
-      this.x + this.width,
-      this.y + this.height - this.border,
-      this.x + this.width - this.border,
-      this.y + this.height
-    );
-    ctx.lineTo(this.x + this.border, this.y + this.height);
-    ctx.quadraticCurveTo(
-      this.x + this.border,
-      this.y + this.height,
-      this.x,
-      this.y + this.height - this.border
-    );
-    ctx.lineTo(this.x, this.y + this.border);
-    ctx.quadraticCurveTo(
-      this.x,
-      this.y + this.border,
-      this.x + this.border,
-      this.y
-    );
-    ctx.closePath();
-    ctx.stroke();
+    ctx.shadowColor = '#FFFFFF30';
+    ctx.shadowBlur = 5;
+    ctx.strokeStyle = '#FFFFFF30';
+    ctx.lineWidth = 5;
+    // ctx.beginPath();
+    // ctx.moveTo(this.x + this.border, this.y);
+    // ctx.lineTo(this.x + this.width - this.border, this.y);
+    // ctx.quadraticCurveTo(
+    //   this.x + this.width - this.border,
+    //   this.y,
+    //   this.x + this.width,
+    //   this.y + this.border
+    // );
+    // ctx.lineTo(this.x + this.width, this.y + this.height - this.border);
+    // ctx.quadraticCurveTo(
+    //   this.x + this.width,
+    //   this.y + this.height - this.border,
+    //   this.x + this.width - this.border,
+    //   this.y + this.height
+    // );
+    // ctx.lineTo(this.x + this.border, this.y + this.height);
+    // ctx.quadraticCurveTo(
+    //   this.x + this.border,
+    //   this.y + this.height,
+    //   this.x,
+    //   this.y + this.height - this.border
+    // );
+    // ctx.lineTo(this.x, this.y + this.border);
+    // ctx.quadraticCurveTo(
+    //   this.x,
+    //   this.y + this.border,
+    //   this.x + this.border,
+    //   this.y
+    // );
+    // ctx.closePath();
+    // ctx.stroke();
   }
 }
 
@@ -183,7 +178,9 @@ class Fallingthings {
     // Math.abs(-this.spawnY /
     // (rand(catcherXpos, catcherXpos + catcherWidth) - this.spawnX) ** 2);
     //Math.random() * (0.3 - 0.15) + 0.15;
-    this.gravity = 0.5;
+
+    //falls faster with higher score, but need to recalculate slope each time
+    this.gravity = 0.5; //*(score+1);
     this.gravitySpeed = 0;
     //sets direction the ball will fall
     this.direction = 1;
@@ -377,36 +374,42 @@ class FallingThingsMega extends Fallingthings {
     this.x = rand(0, game.width);
     this.y = rand(0, game.height / 20);
     this.radius = 30;
-    this.gravity = 1.5;
+    this.gravity = 0.5;
     // if less than 0.5, give -1, else 1
     //direction is dx
-    this.direction = (Math.random() < 0.5 ? -1 : 1) * 1.5;
+    this.direction = Math.random() < 0.5 ? -1 : 1;
+    this.slope = Math.random();
+    this.color = '#FFFFFF';
   }
 
   fall() {
     this.lastPosition(this.x, this.y);
 
-    this.y += this.gravity;
-    this.x += this.direction;
+    this.y += this.gravity + this.slope;
+    this.x += this.direction + this.slope;
 
     // boucning the ball
-    if (this.y + this.radius > game.height || this.y + this.radius < 0) {
+    if (this.y + 0 > game.height || this.y - 0 < 0) {
       this.gravity = -this.gravity;
     }
-    if (this.x + this.radius > game.width || this.x - this.radius < 0) {
+    if (this.x + 0 > game.width || this.x - 0 < 0) {
       this.direction = -this.direction;
     }
   }
-  // speed of bounce when it hits a order
-  // needs to swap both
 
   // remove falling drops that it hits - destroy falling objects
 
   //change in x and change in y
   collisionDetection() {
-    for (obj of fallingArray) {
-      if (this.x + this.radius == obj.x + obj.radius) {
+    for (const obj of fallingArray) {
+      //(x1-x2)*(x1-x2) + (y1-y2)*(y1-y2);
+      let pointDist = (this.x - obj.x) ** 2 + (this.y - obj.y) ** 2;
+      if (pointDist < this.radius + obj.radius + 100) {
         obj.color = '#FFFFFF';
+        obj.alive = false;
+        obj.keeprendering = false;
+        objkilled.play();
+        console.log('hit');
       }
     }
   }
@@ -430,6 +433,14 @@ class Sound {
   }
 }
 
+// Audio
+hit = new Sound('../untitled-game/audio/bong_001.ogg');
+plusScore = new Sound('../untitled-game/audio/phaserUp3.ogg');
+minusLife = new Sound('../untitled-game/audio/phaserDown3.ogg');
+catcherActive = new Sound('../untitled-game/audio/tone1.ogg');
+objkilled = new Sound('../untitled-game/audio/zap1.ogg');
+bgm = new Sound('../untitled-game/audio/bgm.mp3');
+
 // INIT //////////////////////////////////////////////////////////////////
 // Things inside are not global, only exist inside the init scope
 // Init handles all initialization and creation of the actual game objects + state
@@ -449,6 +460,10 @@ function init(mode, chosenColors, colorweight, amtlives) {
     }
     if (!continueGame) {
       continueGame = true;
+      bgm.sound.volume = 0.2;
+      bgm.sound.lopp = true;
+      bgm.play();
+
       initGame();
       requestAnimationFrame(gameLoop);
     } else {
@@ -493,6 +508,8 @@ function init(mode, chosenColors, colorweight, amtlives) {
     // we pass the catcher on the opposite side since it is supposed to match that one
     fallingArray.push(new FallingthingsL(catcherR.color, colorweight));
     setTimeout(function () {
+      if (pause) {
+      }
       //if (pause) {
 
       /// either calculate timepassed
@@ -542,10 +559,6 @@ function init(mode, chosenColors, colorweight, amtlives) {
   // Initizes all the randomized generator functions for objects + catchers
   // Calls each randomizer function after a set time
   function initGame() {
-    bgm = new Sound('../untitled-game/audio/mix.mp3');
-    bgm.sound.volume = 0.1;
-    //bgm.play();
-
     setTimeout(function () {
       spawnL();
     }, 500);
@@ -565,11 +578,6 @@ function init(mode, chosenColors, colorweight, amtlives) {
     setTimeout(function () {
       spawnMega();
     }, 1000);
-
-    hit = new Sound('../untitled-game/audio/bong_001.ogg');
-    plusScore = new Sound('../untitled-game/audio/phaserUp3.ogg');
-    minusLife = new Sound('../untitled-game/audio/phaserDown3.ogg');
-    catcherActive = new Sound('../untitled-game/audio/tone1.ogg');
   }
 
   /// This function is only in charge of rendering the current state of the game - *never call updates from render
@@ -609,8 +617,9 @@ function init(mode, chosenColors, colorweight, amtlives) {
       }
     }
 
-    for (const obj of megaArray) {
-      obj.fall(timePassed);
+    for (const mega of megaArray) {
+      mega.fall(timePassed);
+      mega.collisionDetection();
       //obj.coll
     }
 
@@ -650,7 +659,6 @@ function init(mode, chosenColors, colorweight, amtlives) {
         }
 
         ctx.clearRect(0, 0, game.width, game.height);
-        //bgm.pause();
         ctx.font = '80px Montserrat Subrayada';
         ctx.fillText(`${gameOver}`, getMiddleX, getMiddleY);
         ctx.font = '20px Montserrat Subrayada';
@@ -672,7 +680,7 @@ function init(mode, chosenColors, colorweight, amtlives) {
         });
       }
     } else if (pause) {
-      //bgm.play();
+      //bgm.pause();
       ctx.clearRect(0, 0, game.width, game.height);
       ctx.fillText(`pause`, getMiddleX, getMiddleY);
       requestAnimationFrame(gameLoop);
@@ -707,12 +715,3 @@ document.addEventListener('DOMContentLoaded', function () {
     init('hard', allColors, 3, 5);
   });
 });
-
-//inprogress
-// pause
-//mega - idk what it should do yet.
-//maybe bounces around and is annoying
-
-//TODO:
-//local storage + high score plus name
-// next game button at the end
