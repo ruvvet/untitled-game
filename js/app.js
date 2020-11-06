@@ -18,6 +18,9 @@ game.height = window.innerHeight * 0.75;
 //const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564']; //pastels
 const allColors = ['#F5759B', '#D91D25', '#F7AE00', '#01C013', '#008DD4'];
 let colors = []; //solids
+const randomCol = allColors[rand(0, allColors.length)];
+const otherCol = allColors.filter((col) => col !== randomCol);
+const randomCol2 = otherCol[rand(0, otherCol.length)];
 
 // For glowing effects of drawn elements
 ctx.lineJoin = 'round'; //rounded corners
@@ -32,8 +35,10 @@ const catcherXpos = (getMiddleX - catcherWidth) / 2;
 const catcherYpos = game.height - catcherHeight * 2;
 
 // Initialized variables
-let continueGame = true;
+let continueGame = false;
 let pause = false;
+
+//let gameState =
 let score = 0;
 let fallingArray = []; //the array of falling objects that are alive
 let megaArray = [];
@@ -42,21 +47,25 @@ let catcherR;
 let timePassed = 0;
 let lastLoop = 0;
 let lives = 20;
+// when using OR, if thing on left is falsy, then use the right side of OR
+// doesnt evaluate right side
+let highScore = localStorage.getItem('highScore') || 0;
 
 // Audio
 let hit;
 let plusScore;
 let minusLife;
 let catcherActive;
-let bgmusic;
+let bgm;
 
 // Strings
 const gameOver = 'BIG F'.toUpperCase();
-const gametitle = 'untitled.Game(idk);'.toUpperCase();
+const gametitle = 'untitled.Game(idk);'.toUpperCase(); //"trippin on coding" lul
 const instructions = 'Press space to start/pause'.toUpperCase();
 const instructions2 = 'Use F & J keys'.toUpperCase();
 const instructions3 = 'Catch matching colors'.toUpperCase();
 const instructions4 = 'Beat your own High Score'.toUpperCase();
+const playAgain = 'Space to play again'.toUpperCase();
 
 // GLOBAL FUNCTIONS //////////////////////////////////////////////////////
 function rand(min, max) {
@@ -156,25 +165,6 @@ class Catcher {
   }
 }
 
-// Catcher array to hold all the catcher instances
-// Passes width, height,x-, y-, and key to activate
-const catchersArray = [
-  (catcherL = new Catcher(
-    catcherWidth,
-    catcherHeight,
-    catcherXpos,
-    catcherYpos,
-    'f'
-  )),
-  (catcherR = new Catcher(
-    catcherWidth,
-    catcherHeight,
-    catcherXpos + getMiddleX,
-    catcherYpos,
-    'j'
-  )),
-];
-
 // Falling objects parent class
 // renders
 // updates position as it falls
@@ -186,7 +176,13 @@ class Fallingthings {
     this.color = colors[rand(0, colors.length)];
     this.speedX = 0;
     this.speedY = 0;
-    this.slope = Math.random() * (0.4 - 0.2) + 0.2;
+    this.spawnX = this.x;
+    this.spawnY = this.y;
+
+    this.slope = Math.random() * (0.3 - 0.15) + 0.15;
+    // Math.abs(-this.spawnY /
+    // (rand(catcherXpos, catcherXpos + catcherWidth) - this.spawnX) ** 2);
+    //Math.random() * (0.3 - 0.15) + 0.15;
     this.gravity = 0.5;
     this.gravitySpeed = 0;
     //sets direction the ball will fall
@@ -241,8 +237,7 @@ class Fallingthings {
       //ctx.fillStyle = `${this.color}${trailopacity.toString(16)}`;
       // parse hexadecimal color substring as 16 radix (hexadecimal)
       //turns to rgb values
-      //TODO: sometimes 243 throws an error????
-      //WHEN I CONSOLE LOG IT IT NEVER GIVES AN ERROR WHATS UP WITH THAT
+
       const r = parseInt(this.color.substring(1, 3), 16);
       const g = parseInt(this.color.substring(3, 5), 16);
       const b = parseInt(this.color.substring(5, 7), 16);
@@ -263,17 +258,15 @@ class Fallingthings {
     this.lastPosition(this.x, this.y);
     this.speedY += this.gravity * timeMultiplier;
     this.y += this.speedY + this.gravitySpeed;
-    this.x += this.direction*Math.sqrt((this.y - game.height) / -this.slope) * timeMultiplier;
+    this.x +=
+      this.direction *
+      Math.sqrt((this.y - game.height) / -this.slope) *
+      timeMultiplier;
     if (this.caught) {
       this.bounceObj();
     }
 
     if (this.y > game.height || this.x > game.width || this.x < 0) {
-      //TODO: i think this might be repetitive
-      // update nvm its not
-      // alive - is thing object still in play if it hits the catcher
-      // keeprendering - false when it passes the border
-      // caught - do i bounce it or not
       hit.play();
       this.keeprendering = false;
     }
@@ -334,11 +327,7 @@ class FallingthingsL extends Fallingthings {
       ) {
         minusLife.play();
         lives--;
-        //TODO: FIX LIFE LOGIC. ITS FUCKED // doesnt update when its set inside init
       }
-
-      //TODO: do we still need obj.alive????
-      //- yes i think we do. its no longer counting for points
     }
   }
 }
@@ -352,7 +341,6 @@ class FallingthingsR extends Fallingthings {
     this.color = this.weightedColors(catcherColor);
     this.direction = -1;
   }
-
 
   collisionDetection() {
     // every time it updates, it checks if its at or past the collision line
@@ -378,10 +366,7 @@ class FallingthingsR extends Fallingthings {
       ) {
         minusLife.play();
         lives--;
-        //TODO: FIX LIFE LOGIC. ITS FUCKED
       }
-
-      //TODO: do we still need obj.alive???? - yes i think we do. its no longer counting for points
     }
   }
 }
@@ -392,26 +377,39 @@ class FallingThingsMega extends Fallingthings {
     this.x = rand(0, game.width);
     this.y = rand(0, game.height / 20);
     this.radius = 30;
-    this.gravity = 0.8;
+    this.gravity = 1.5;
     // if less than 0.5, give -1, else 1
-    this.direction = Math.random() < 0.5 ? -1 : 1;
+    //direction is dx
+    this.direction = (Math.random() < 0.5 ? -1 : 1) * 1.5;
   }
 
-  fall(timeMultiplier) {
+  fall() {
     this.lastPosition(this.x, this.y);
-    this.speedY += this.gravity * timeMultiplier;
-    this.speedX +=this.gravity * timeMultiplier;
-    this.y += this.speedY + this.gravitySpeed;
-    this.x += this.direction * (Math.sqrt((this.y - game.height) / -this.slope)) * timeMultiplier;
 
-    if (this.y > game.height || this.y < game.height) {
-      //this.gravitySpeed = -(this.gravitySpeed * this.bounce);
-      this.speedY = -this.speedY * 0.65;
+    this.y += this.gravity;
+    this.x += this.direction;
+
+    // boucning the ball
+    if (this.y + this.radius > game.height || this.y + this.radius < 0) {
+      this.gravity = -this.gravity;
     }
-    if (this.x > game.width || this.x < 0 ){
-      this.speedX = -this.speedX*1;
+    if (this.x + this.radius > game.width || this.x - this.radius < 0) {
+      this.direction = -this.direction;
+    }
   }
-}
+  // speed of bounce when it hits a order
+  // needs to swap both
+
+  // remove falling drops that it hits - destroy falling objects
+
+  //change in x and change in y
+  collisionDetection() {
+    for (obj of fallingArray) {
+      if (this.x + this.radius == obj.x + obj.radius) {
+        obj.color = '#FFFFFF';
+      }
+    }
+  }
 }
 // Sound class that manages all the SFX
 class Sound {
@@ -437,25 +435,32 @@ class Sound {
 // Init handles all initialization and creation of the actual game objects + state
 // Should not create new functional functions/etc in here
 //TODO: refactor this.
-function init(chosenColors, colorweight) {
+function init(mode, chosenColors, colorweight, amtlives) {
   // The new values of the colors array, # of lives, and weighted colors
   // Based on mode/difficulty
+  gamemode = mode;
   colors = chosenColors;
-  //
+  lives = amtlives;
+
+  function handleKeyUp(key) {
+    if (key.key !== ' ') {
+      // flattening the function
+      return;
+    }
+    if (!continueGame) {
+      continueGame = true;
+      initGame();
+      requestAnimationFrame(gameLoop);
+    } else {
+      //pause = pause === true ? false : true;
+      pause = !pause;
+    }
+  }
 
   // Start msg w/ instructions
   startMessage();
 
-  document.addEventListener('keyup', startGame);
-
-  function startGame(key) {
-    if (key.key == ' ') {
-      initGame();
-      requestAnimationFrame(gameLoop);
-      // need to remove event listener otherwise it fucks itself
-      document.removeEventListener('keyup', startGame);
-    }
-  }
+  document.addEventListener('keyup', handleKeyUp);
 
   // //collision detection manages score + life keeping in the event of a collision
   // function collisionDetection(obj, catcher) {
@@ -463,31 +468,24 @@ function init(chosenColors, colorweight) {
   //   // so its detecting one object multiple times as its updating every few ms
   //   //
 
-  //   if (obj.y > catcherYpos - obj.radius) {
-  //     // if it passes the floor, take it out of the array
-  //     const keydown = catcher.keydown;
-  //     obj.alive = false;
-  //     // if keydown + matching
-  //     // +score
-  //     if (keydown && obj.color == catcher.color) {
-  //       obj.caught = true;
-  //       plusScore.play();
-  //       score++;
-  //     }
-  //     // if not matching + keydown >> -1 life
-  //     // if matching and no keydown >> -1 life
-  //     if (
-  //       (!keydown && obj.color == catcher.color) ||
-  //       (keydown && obj.color !== catcher.color)
-  //     ) {
-  //       minusLife.play();
-  //       lives--;
-  //       //TODO: FIX LIFE LOGIC. ITS FUCKED
-  //     }
-
-  //     //TODO: do we still need obj.alive???? - yes i think we do. its no longer counting for points
-  //   }
-  // }
+  // Catcher array to hold all the catcher instances
+  // Passes width, height,x-, y-, and key to activate
+  const catchersArray = [
+    (catcherL = new Catcher(
+      catcherWidth,
+      catcherHeight,
+      catcherXpos,
+      catcherYpos,
+      'f'
+    )),
+    (catcherR = new Catcher(
+      catcherWidth,
+      catcherHeight,
+      catcherXpos + getMiddleX,
+      catcherYpos,
+      'j'
+    )),
+  ];
 
   // These functions all use setTimeout to set a random timeout until the next object is created/color swap
   // This is for more randomness
@@ -495,6 +493,11 @@ function init(chosenColors, colorweight) {
     // we pass the catcher on the opposite side since it is supposed to match that one
     fallingArray.push(new FallingthingsL(catcherR.color, colorweight));
     setTimeout(function () {
+      //if (pause) {
+
+      /// either calculate timepassed
+      //keep settimeout but stop spawning
+      //}
       spawnL();
     }, rand(1000, 6000)); ///3000,4000
   }
@@ -521,20 +524,27 @@ function init(chosenColors, colorweight) {
   }
 
   // if mega already in play (megaArray.length>1, delete and set new timeout)
-  // function spawnMega() {
-  //   console.log('megaspawn');
-  //   megaArray.push(new FallingThingsMega(colorweight));
-  //   setTimeout(function () {
-  //     spawnMega();
-  //   }, rand(10000, 20000));
-  // }
+  function spawnMega() {
+    megaArray.push(new FallingThingsMega(colorweight));
+    setTimeout(function () {
+      for (mega of megaArray) {
+        mega.keeprendering = false;
+        mega.alive = false;
+      }
+      megaArray.shift();
+      //mega.keeprendering = false;
+    }, 20000);
+    setTimeout(function () {
+      spawnMega();
+    }, rand(20000, 40000));
+  }
 
   // Initizes all the randomized generator functions for objects + catchers
   // Calls each randomizer function after a set time
   function initGame() {
-    bgmusic = new Sound('../untitled-game/audio/mix.mp3');
-    bgmusic.sound.volume = 0.1;
-    bgmusic.play();
+    bgm = new Sound('../untitled-game/audio/mix.mp3');
+    bgm.sound.volume = 0.1;
+    //bgm.play();
 
     setTimeout(function () {
       spawnL();
@@ -552,9 +562,9 @@ function init(chosenColors, colorweight) {
       colorSwapR();
     }, 5000);
 
-    // setTimeout(function () {
-    //   spawnMega();
-    // }, 1000);
+    setTimeout(function () {
+      spawnMega();
+    }, 1000);
 
     hit = new Sound('../untitled-game/audio/bong_001.ogg');
     plusScore = new Sound('../untitled-game/audio/phaserUp3.ogg');
@@ -597,10 +607,11 @@ function init(chosenColors, colorweight) {
       if (obj.alive) {
         obj.collisionDetection();
       }
+    }
 
-      for (const obj of megaArray) {
-        obj.fall(timePassed);
-      }
+    for (const obj of megaArray) {
+      obj.fall(timePassed);
+      //obj.coll
     }
 
     // Filter the falling array with only objects that should continue to render
@@ -610,55 +621,61 @@ function init(chosenColors, colorweight) {
     // When the number of lives hits 0, stop tell the gameLoop to stop rendering
     if (lives == 0) {
       continueGame = false;
-      // bgmusic.pause();
+      // bgm.pause();
     }
   }
 
-  // function pauseGame(key) {
-  //   if (key.key == ' ') {
-  //     pause = pause === true ? false : true;
-  //   }
-  //   ///////////////// TODO: DAH - its undefined
-  //   //gameloop(now);
-  //   if (pause) {
-  //     ctx.clearRect(0, 0, game.width, game.height);
-  //     ctx.fillText(`pause`, getMiddleX, getMiddleY);
-  //     console.log('successfully paused');
-  //   } else if (!pause) {
-  //     console.log('unpause here');
-  //   }
-  // }
-
   function gameLoop(now) {
-    document.addEventListener('keyup', function (key) {
-      if (key.key == ' ') {
-        pause = pause === true ? false : true;
-      }
-    });
+    timePassed = (now - lastLoop) / 1000;
+    lastLoop = now;
 
-    // TODO: this might fuck with lastloop
     if (!pause) {
       // Now  var is the dom timestamp in ms
       // lastloop var is the timestamp of the time we last called gameloop
-      timePassed = (now - lastLoop) / 1000;
-      lastLoop = now;
-      updateFallingThings(timePassed);
-      render();
       if (continueGame) {
         // continue rendering with each gameloop
+        updateFallingThings(timePassed);
+        render();
         requestAnimationFrame(gameLoop);
       } else {
+        document.removeEventListener('keyup', handleKeyUp);
+        console.log('event listner removed)');
         // game is over
+        // save local high score
+
+        if (score > highScore) {
+          console.log(highScore);
+          localStorage.setItem('highScore', score);
+          console.log(highScore);
+        }
+
         ctx.clearRect(0, 0, game.width, game.height);
+        //bgm.pause();
         ctx.font = '80px Montserrat Subrayada';
         ctx.fillText(`${gameOver}`, getMiddleX, getMiddleY);
+        ctx.font = '20px Montserrat Subrayada';
+        ctx.fillText(
+          `Score: ${score}     High Score: ${highScore}`,
+          getMiddleX,
+          getMiddleY + 80
+        );
+        ctx.fillText(`${playAgain}`, getMiddleX, getMiddleY + 100);
+
+        document.addEventListener('keyup', function (key) {
+          if ((key.key = ' ')) {
+            if (gamemode == 'easy') {
+              init([randomCol, randomCol2], 5, 10);
+            } else if (gamemode == 'hard') {
+              init('hard', allColors, 3, 5);
+            }
+          }
+        });
       }
     } else if (pause) {
+      //bgm.play();
       ctx.clearRect(0, 0, game.width, game.height);
       ctx.fillText(`pause`, getMiddleX, getMiddleY);
-      if (!pause) {
-        gameLoop(now);
-      }
+      requestAnimationFrame(gameLoop);
     }
   }
 
@@ -681,43 +698,21 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('easy').addEventListener('click', function () {
     document.getElementById('easy').style.display = 'none';
     document.getElementById('hard').style.display = 'none';
-    const randomCol = allColors[rand(0, allColors.length)];
-    const otherCol = allColors.filter((col) => col !== randomCol);
-    const randomCol2 = otherCol[rand(0, otherCol.length)];
-    init([randomCol, randomCol2], 5);
+    init('easy', [randomCol, randomCol2], 5, 10);
   });
 
   document.getElementById('hard').addEventListener('click', function () {
     document.getElementById('easy').style.display = 'none';
     document.getElementById('hard').style.display = 'none';
-    init(allColors, 3);
+    init('hard', allColors, 3, 5);
   });
 });
-
-//todo: golden ball
-// use drawpath if i want a shape
-
-//todo:check point + alive vs dead logic
-
-
-// changes -
-//portrait
-//
-//moveed collision detection to inside each class
-//therefore also moved catchers to global -
-//TODO: need to fix and initialize them with some color
-// hard codes which catcher its tied to for detection so it doesnt detect multiple
-//
-//moved the falling function for fallingthingsclasses into parent
-//instead added a "direction" variable to determine direction
-// less duplicate code
-//
-// added caught var to bounce if caught
 
 //inprogress
 // pause
 //mega - idk what it should do yet.
 //maybe bounces around and is annoying
 
-
-//TODO: fix for lives so it can initialize diff versions for diff modes
+//TODO:
+//local storage + high score plus name
+// next game button at the end
