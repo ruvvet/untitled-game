@@ -434,12 +434,12 @@ class Sound {
 }
 
 // Audio
-hit = new Sound('audio/bong_001.ogg');
-plusScore = new Sound('audio/phaserUp3.ogg');
-minusLife = new Sound('audio/phaserDown3.ogg');
-catcherActive = new Sound('audio/tone1.ogg');
-objkilled = new Sound('audio/zap1.ogg');
-bgm = new Sound('audio/bgm.mp3');
+hit = new Sound('/audio/bong_001.ogg');
+plusScore = new Sound('/audio/phaserUp3.ogg');
+minusLife = new Sound('/audio/phaserDown3.ogg');
+catcherActive = new Sound('/audio/tone1.ogg');
+objkilled = new Sound('/audio/zap1.ogg');
+bgm = new Sound('/audio/bgm.mp3');
 
 // INIT //////////////////////////////////////////////////////////////////
 // Things inside are not global, only exist inside the init scope
