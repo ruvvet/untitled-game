@@ -11,8 +11,13 @@ const ctx = game.getContext('2d');
 // Scaling canvas - default is 300x150
 // Use getComputedStyle to grab the css h + w attributes of game
 //and set the h+w manually
-game.width = window.innerWidth / 4;
 game.height = window.innerHeight * 0.75;
+game.width = game.height / 1.75;
+
+addEventListener('resize', () => {
+  game.height = window.innerHeight * 0.75;
+  game.width = game.height / 1.75;
+});
 
 // Array of different colors that will be used
 //const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564']; //pastels
@@ -33,6 +38,7 @@ const catcherWidth = (game.width / 2) * 0.7;
 const catcherHeight = game.height / 20;
 const catcherXpos = (getMiddleX - catcherWidth) / 2;
 const catcherYpos = game.height - catcherHeight * 2;
+const avgRadius = game.height / 40;
 
 // Initialized variables
 let gameState = null;
@@ -175,18 +181,18 @@ class Fallingthings {
     this.spawnY = this.y;
 
     this.slope = Math.random() * (0.3 - 0.15) + 0.15;
+    //(Math.random() * (0.3 - 0.15) + 0.15);
     // Math.abs(-this.spawnY /
     // (rand(catcherXpos, catcherXpos + catcherWidth) - this.spawnX) ** 2);
-    //Math.random() * (0.3 - 0.15) + 0.15;
 
     //falls faster with higher score, but need to recalculate slope each time
-    this.gravity = 0.5; //*(score+1);
+    this.gravity = 0.5;
     this.gravitySpeed = 0;
     //sets direction the ball will fall
     this.direction = 1;
     //todo: tweak these settings
     this.bounce = 1;
-    this.radius = 20;
+    this.radius = avgRadius;
     this.match = false;
     this.alive = true; //if color matches catcher, change to true
     this.caught = false;
@@ -373,7 +379,7 @@ class FallingThingsMega extends Fallingthings {
     super();
     this.x = rand(0, game.width);
     this.y = rand(0, game.height / 20);
-    this.radius = 30;
+    this.radius = game.height / 20;
     this.gravity = 0.5;
     // if less than 0.5, give -1, else 1
     //direction is dx
@@ -407,9 +413,9 @@ class FallingThingsMega extends Fallingthings {
       if (pointDist < this.radius + obj.radius + 100) {
         obj.color = '#FFFFFF';
         obj.alive = false;
-        obj.keeprendering = false;
+        obj.gravity = 3;
+        //obj.keeprendering = false;
         objkilled.play();
-        console.log('hit');
       }
     }
   }
@@ -516,14 +522,14 @@ function init(mode, chosenColors, colorweight, amtlives) {
       //keep settimeout but stop spawning
       //}
       spawnL();
-    }, rand(1000, 6000)); ///3000,4000
+    }, rand(1000, Math.max(6000 / (score + 1), 2000))); ///3000,4000
   }
 
   function spawnR() {
     fallingArray.push(new FallingthingsR(catcherL.color, colorweight));
     setTimeout(function () {
       spawnR();
-    }, rand(1000, 6000));
+    }, rand(1000, Math.max(6000 / (score + 1), 2000)));
   }
 
   function colorSwapL() {
@@ -653,9 +659,7 @@ function init(mode, chosenColors, colorweight, amtlives) {
         // save local high score
 
         if (score > highScore) {
-          console.log(highScore);
           localStorage.setItem('highScore', score);
-          console.log(highScore);
         }
 
         ctx.clearRect(0, 0, game.width, game.height);
@@ -689,7 +693,7 @@ function init(mode, chosenColors, colorweight, amtlives) {
 
   function startMessage() {
     //ctx.restore();
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
     ctx.font = '30px Montserrat Subrayada';
     ctx.fillText(`${gametitle}`, getMiddleX, getMiddleY - 140);
