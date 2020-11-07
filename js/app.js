@@ -640,26 +640,32 @@ function init(mode, chosenColors, colorweight, amtlives) {
     }
   }
 
+  // The gameloop handles and updates all the macro game logic, renders, and game states
+  // It is an animation function that we pass through requestanimationframe
+  // And requestanimationframe uses it to continuously callback and update before the next frame is painted
+  // The 'now' variable is always passed through the callback (gameloop) function
+  // 'now' = dom timestamp in ms= current time since time of origin
   function gameLoop(now) {
+    // timepassed = the time passed since the last frame was called/1000 (since it is in ms)
+    // lastloop var is the timestamp of the time we last called gameloop
     timePassed = (now - lastLoop) / 1000;
+    // save the current timestamp as lastloop for next frame
     lastLoop = now;
 
     if (!pause) {
-      // Now  var is the dom timestamp in ms
-      // lastloop var is the timestamp of the time we last called gameloop
       if (continueGame) {
         // continue rendering with each gameloop
         updateFallingThings(timePassed);
         render();
+
         requestAnimationFrame(gameLoop);
       } else {
         document.removeEventListener('keyup', handleKeyUp);
-        console.log('event listner removed)');
         // game is over
         // save local high score
-
         if (score > highScore) {
           localStorage.setItem('highScore', score);
+          highScore = localStorage.getItem('highScore');
         }
 
         ctx.clearRect(0, 0, game.width, game.height);
@@ -719,3 +725,5 @@ document.addEventListener('DOMContentLoaded', function () {
     init('hard', allColors, 3, 5);
   });
 });
+
+// options for pause and reset
