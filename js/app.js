@@ -7,12 +7,15 @@
 // Setting up Canvas - Get canvas element from html doc
 // set drawing context for canvas area w/ 2D attributes
 const game = document.getElementById('game');
+
+//maybe i can use this to calculated the intercepts
+// const computedStyle = getComputedStyle(game);
+// const compheight = computedStyle.height;
+// const compwidth = computedStyle.width;
+
 const ctx = game.getContext('2d');
-// Scaling canvas - default is 300x150
-// Use getComputedStyle to grab the css h + w attributes of game
-//and set the h+w manually
 game.height = window.innerHeight * 0.75;
-game.width = game.height / 1.75;
+game.width = game.height / 1.75; //ratioed
 
 addEventListener('resize', () => {
   game.height = window.innerHeight * 0.75;
@@ -22,7 +25,7 @@ addEventListener('resize', () => {
 // Array of different colors that will be used
 //const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564']; //pastels
 const allColors = ['#F5759B', '#D91D25', '#F7AE00', '#01C013', '#008DD4'];
-let colors = []; //solids
+let colors = [];
 const randomCol = allColors[rand(0, allColors.length)];
 const otherCol = allColors.filter((col) => col !== randomCol);
 const randomCol2 = otherCol[rand(0, otherCol.length)];
@@ -41,38 +44,74 @@ const catcherYpos = game.height - catcherHeight * 2;
 const avgRadius = game.height / 40;
 
 // Initialized variables
-let gameState = null;
-let continueGame = false;
-let pause = false;
+// Game state handlers
+let gameState = '';
+// let continueGame = false;
+// let pause = false;
+
+// Score/life keepers
 let score = 0;
 let lives = 0;
-let fallingArray = []; //the array of falling objects that are alive
-let megaArray = [];
+// when using OR, if thing on left is falsy, then use the right side of OR
+// doesnt evaluate right side
+let highScore = localStorage.getItem('highScore') || 0;
+
+// Game objects
+let fallingArray = []; // The array of falling objects that are alive
+let megaArray = []; // The array of Mega balls that are alive
 let catcherL;
 let catcherR;
 
 let timePassed = 0;
 let lastLoop = 0;
-
-// when using OR, if thing on left is falsy, then use the right side of OR
-// doesnt evaluate right side
-let highScore = localStorage.getItem('highScore') || 0;
+//let onPause = 0;
 
 // Strings
-const gameOver = 'BIG F'.toUpperCase();
+const gameOverText = 'BIG F'.toUpperCase();
 const gametitle = 'untitled.Game(idk);'.toUpperCase(); //"trippin on coding" lul
 const instructions = 'Press space to start/pause'.toUpperCase();
 const instructions2 = 'Use F & J keys'.toUpperCase();
 const instructions3 = 'Catch matching colors'.toUpperCase();
 const instructions4 = 'Beat your own High Score'.toUpperCase();
-const playAgain = 'Space to play again'.toUpperCase();
+const playAgainText = 'Space to play again'.toUpperCase();
 
 // GLOBAL FUNCTIONS //////////////////////////////////////////////////////
 function rand(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
 }
 
-// CLASSES ///////////////////////////////////////////////////////////////
+function startMessage() {
+  ctx.clearRect(0, 0, game.width, game.height);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'center';
+  ctx.font = '30px Montserrat Subrayada';
+  ctx.fillText(`${gametitle}`, getMiddleX, getMiddleY - 140);
+  ctx.font = '20px Montserrat Subrayada';
+  ctx.fillText(`${instructions}`, getMiddleX, getMiddleY - 20);
+  ctx.fillText(`${instructions2}`, getMiddleX, getMiddleY);
+  ctx.fillText(`${instructions3}`, getMiddleX, getMiddleY + 20);
+  ctx.fillText(`${instructions4}`, getMiddleX, getMiddleY + 40);
+}
+
+function gameOverMessage() {
+  ctx.clearRect(0, 0, game.width, game.height);
+  ctx.font = '80px Montserrat Subrayada';
+  ctx.fillText(`${gameOverText}`, getMiddleX, getMiddleY);
+  ctx.font = '20px Montserrat Subrayada';
+  ctx.fillText(
+    `Score: ${score}     High Score: ${highScore}`,
+    getMiddleX,
+    getMiddleY + 80
+  );
+  ctx.fillText(`${playAgainText}`, getMiddleX, getMiddleY + 100);
+}
+
+function pauseMessage() {
+  ctx.clearRect(0, 0, game.width, game.height);
+  ctx.fillText(`pause`, getMiddleX, getMiddleY);
+}
+
+// GLOBAL CLASSES ////////////////////////////////////////////////////////
 // The catcher class
 // checks for matching keydown listner
 // renders
@@ -420,6 +459,8 @@ class FallingThingsMega extends Fallingthings {
     }
   }
 }
+
+// AUDIO STUFF ///////////////////////////////////////////////////////////
 // Sound class that manages all the SFX
 class Sound {
   constructor(src) {
@@ -447,48 +488,91 @@ catcherActive = new Sound('audio/tone1.ogg');
 objkilled = new Sound('audio/zap1.ogg');
 bgm = new Sound('audio/bgm.mp3');
 
+// var audio = new Audio(),
+//     i = 0;
+// var playlist = new Array('http://www.w3schools.com/htmL/horse.mp3', 'http://demos.w3avenue.com/html5-unleashed-tips-tricks-and-techniques/demo-audio.mp3');
+
+// audio.addEventListener('ended', function () {
+//     i = ++i < playlist.length ? i : 0;
+//     console.log(i)
+//     audio.src = playlist[i];
+//     audio.play();
+// }, true);
+// audio.volume = 0.3;
+// audio.loop = false;
+// audio.src = playlist[0];
+// audio.play();
+
+
+
+
+// what states lead to what settings
+// create a flow diagram
+//
+
+
+
+
+
 // INIT //////////////////////////////////////////////////////////////////
 // Things inside are not global, only exist inside the init scope
 // Init handles all initialization and creation of the actual game objects + state
 // Should not create new functional functions/etc in here
 //TODO: refactor this.
-function init(mode, chosenColors, colorweight, amtlives) {
-  // The new values of the colors array, # of lives, and weighted colors
+function init(gamemode, chosenColors, colorweight, amtlives) {
+  // The new values of the mode, colors array, # of lives, and weighted colors
   // Based on mode/difficulty
-  gamemode = mode;
+  mode = gamemode;
   colors = chosenColors;
   lives = amtlives;
 
   function handleKeyUp(key) {
     if (key.key !== ' ') {
-      // flattening the function
       return;
     }
-    if (!continueGame) {
-      continueGame = true;
-      bgm.sound.volume = 0.2;
-      bgm.sound.lopp = true;
-      bgm.play();
 
+    // pressing space makes it fall faster??????
+    console.log('space was pressed');
+    if (!gameState) {
+      // initial space to start game
+      // We are now in the 'play' state1
+      bgm.sound.volume = 0.2;
+      bgm.sound.loop = true;
+      bgm.play();
+      gameState = 'play';
+      console.log('in initial start', gameState);
       initGame();
       requestAnimationFrame(gameLoop);
+    } else if (gameState == 'over') {
+      //if lives ==0,
+      // it is over
+      gameState ='';
+      lastLoop =0;
+      if (mode == 'easy') {
+
+        init([randomCol, randomCol2], 5, 10);
+
+      } else if (mode == 'hard') {
+        init('hard', allColors, 3, 5);
+      }
     } else {
-      //pause = pause === true ? false : true;
-      pause = !pause;
+      console.log('gamestate now', gameState);
+      gameState = gameState == 'pause' ? 'play' : 'pause';
+      console.log('toggled to', gameState);
     }
+    // switch
+    //
   }
 
   // Start msg w/ instructions
   startMessage();
-
   document.addEventListener('keyup', handleKeyUp);
 
-  // //collision detection manages score + life keeping in the event of a collision
-  // function collisionDetection(obj, catcher) {
-  //   // every time it updates, it checks if its at or past the collision line
-  //   // so its detecting one object multiple times as its updating every few ms
-  //   //
 
+
+  // CREATING ELEMENTS //////////////////////////////////////////////////////////////////
+
+  // Creating the catchers
   // Catcher array to hold all the catcher instances
   // Passes width, height,x-, y-, and key to activate
   const catchersArray = [
@@ -508,25 +592,23 @@ function init(mode, chosenColors, colorweight, amtlives) {
     )),
   ];
 
+  // Creating the falling objects
   // These functions all use setTimeout to set a random timeout until the next object is created/color swap
   // This is for more randomness
   function spawnL() {
-    // we pass the catcher on the opposite side since it is supposed to match that one
-    fallingArray.push(new FallingthingsL(catcherR.color, colorweight));
+    if (gameState == 'play') {
+      // we pass the catcher on the opposite side since it is supposed to match that one
+      fallingArray.push(new FallingthingsL(catcherR.color, colorweight));
+    }
     setTimeout(function () {
-      if (pause) {
-      }
-      //if (pause) {
-
-      /// either calculate timepassed
-      //keep settimeout but stop spawning
-      //}
       spawnL();
     }, rand(1000, Math.max(6000 / (score + 1), 2000))); ///3000,4000
   }
 
   function spawnR() {
-    fallingArray.push(new FallingthingsR(catcherL.color, colorweight));
+    if (gameState == 'play') {
+      fallingArray.push(new FallingthingsR(catcherL.color, colorweight));
+    }
     setTimeout(function () {
       spawnR();
     }, rand(1000, Math.max(6000 / (score + 1), 2000)));
@@ -548,7 +630,9 @@ function init(mode, chosenColors, colorweight, amtlives) {
 
   // if mega already in play (megaArray.length>1, delete and set new timeout)
   function spawnMega() {
-    megaArray.push(new FallingThingsMega(colorweight));
+    if (gameState == 'play') {
+      megaArray.push(new FallingThingsMega(colorweight));
+    }
     setTimeout(function () {
       for (mega of megaArray) {
         mega.keeprendering = false;
@@ -586,7 +670,8 @@ function init(mode, chosenColors, colorweight, amtlives) {
     }, 1000);
   }
 
-  /// This function is only in charge of rendering the current state of the game - *never call updates from render
+  // RENDER //////////////////////////////////////////////////////////////
+  // This function is only in charge of rendering the current state of the game - *never call updates from render
   function render() {
     ctx.clearRect(0, 0, game.width, game.height);
     ctx.font = '30px Montserrat Subrayada';
@@ -609,6 +694,7 @@ function init(mode, chosenColors, colorweight, amtlives) {
     }
   }
 
+  // UPDATE //////////////////////////////////////////////////////////////
   // Updates the state of all falling objects with every game loop
   // Takes the amount of time passed since last loop as an argument
   // And passes to each object instance, to smooth rendering
@@ -635,91 +721,63 @@ function init(mode, chosenColors, colorweight, amtlives) {
 
     // When the number of lives hits 0, stop tell the gameLoop to stop rendering
     if (lives == 0) {
-      continueGame = false;
+      gameState = 'over';
+      console.log('game should be over now');
       // bgm.pause();
     }
   }
 
+  // MAIN GAME LOOP //////////////////////////////////////////////////////
   // The gameloop handles and updates all the macro game logic, renders, and game states
   // It is an animation function that we pass through requestanimationframe
   // And requestanimationframe uses it to continuously callback and update before the next frame is painted
   // The 'now' variable is always passed through the callback (gameloop) function
   // 'now' = dom timestamp in ms= current time since time of origin
   function gameLoop(now) {
-    // timepassed = the time passed since the last frame was called/1000 (since it is in ms)
-    // lastloop var is the timestamp of the time we last called gameloop
     timePassed = (now - lastLoop) / 1000;
     // save the current timestamp as lastloop for next frame
     lastLoop = now;
-
-    if (!pause) {
-      if (continueGame) {
-        // continue rendering with each gameloop
-        updateFallingThings(timePassed);
-        render();
-
-        requestAnimationFrame(gameLoop);
-      } else {
-        document.removeEventListener('keyup', handleKeyUp);
-        // game is over
-        // save local high score
-        if (score > highScore) {
-          localStorage.setItem('highScore', score);
-          highScore = localStorage.getItem('highScore');
-        }
-
-        ctx.clearRect(0, 0, game.width, game.height);
-        ctx.font = '80px Montserrat Subrayada';
-        ctx.fillText(`${gameOver}`, getMiddleX, getMiddleY);
-        ctx.font = '20px Montserrat Subrayada';
-        ctx.fillText(
-          `Score: ${score}     High Score: ${highScore}`,
-          getMiddleX,
-          getMiddleY + 80
-        );
-        ctx.fillText(`${playAgain}`, getMiddleX, getMiddleY + 100);
-
-        document.addEventListener('keyup', function (key) {
-          if ((key.key = ' ')) {
-            if (gamemode == 'easy') {
-              init([randomCol, randomCol2], 5, 10);
-            } else if (gamemode == 'hard') {
-              init('hard', allColors, 3, 5);
-            }
-          }
-        });
-      }
-    } else if (pause) {
+    if (gameState == 'pause') {
+      //onPause = now;
       //bgm.pause();
-      ctx.clearRect(0, 0, game.width, game.height);
-      ctx.fillText(`pause`, getMiddleX, getMiddleY);
+      pauseMessage();
+      requestAnimationFrame(gameLoop);
+    }
+    /// ALJGDLSKJGVSKLJDGLSKDJGSLKJGIEMLKSAJDLKJSDJGOSIDGLKSDJGGGGGGSLDK
+    else if (gameState == 'over') {
+      // game is over
+      // save local high score
+      if (score > highScore) {
+        localStorage.setItem('highScore', score);
+        highScore = localStorage.getItem('highScore');
+      }
+      gameOverMessage();
+    } else {
+      console.log(gameState);
+      // timepassed = the time passed since the last frame was called/1000 (since it is in ms)
+      // lastloop var is the timestamp of the time we last called gameloop
+
+      // continue rendering with each gameloop
+      updateFallingThings(timePassed);
+      render();
       requestAnimationFrame(gameLoop);
     }
   }
-
-  function startMessage() {
-    //ctx.restore();
-    ctx.fillStyle = '#FFFFFF';
-    ctx.textAlign = 'center';
-    ctx.font = '30px Montserrat Subrayada';
-    ctx.fillText(`${gametitle}`, getMiddleX, getMiddleY - 140);
-    ctx.font = '20px Montserrat Subrayada';
-    ctx.fillText(`${instructions}`, getMiddleX, getMiddleY - 20);
-    ctx.fillText(`${instructions2}`, getMiddleX, getMiddleY);
-    ctx.fillText(`${instructions3}`, getMiddleX, getMiddleY + 20);
-    ctx.fillText(`${instructions4}`, getMiddleX, getMiddleY + 40);
-  }
 }
 
-// After dom has loaded, check for space key press to initialize and start rendering
+// After dom has loaded, check for space key press to initialize a game with given parameters
 document.addEventListener('DOMContentLoaded', function () {
+
+
   document.getElementById('easy').addEventListener('click', function () {
+    //document.addEventListener('keyup', handleKeyUp);
     document.getElementById('easy').style.display = 'none';
     document.getElementById('hard').style.display = 'none';
     init('easy', [randomCol, randomCol2], 5, 10);
   });
 
   document.getElementById('hard').addEventListener('click', function () {
+    //document.addEventListener('keyup', handleKeyUp);
     document.getElementById('easy').style.display = 'none';
     document.getElementById('hard').style.display = 'none';
     init('hard', allColors, 3, 5);
@@ -727,3 +785,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // options for pause and reset
+// gamestate issues
+// i hate ==
+// pressing space at the start causes it to still toggle?
+// pressing spaece to toggle it back to play causes the spawns to be called again????
+// why? ^^^^
