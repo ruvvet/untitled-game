@@ -17,12 +17,13 @@ const ctx = game.getContext('2d');
 game.height = window.innerHeight * 0.75;
 game.width = game.height / 1.75; //ratioed
 
+// Event listener to dynamically resize when the window is resized
 addEventListener('resize', () => {
   game.height = window.innerHeight * 0.75;
   game.width = game.height / 1.75;
 });
 
-// Array of different colors that will be used
+// Array of different colors that will be used + color combos
 //const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564']; //pastels
 const allColors = ['#F5759B', '#D91D25', '#F7AE00', '#01C013', '#008DD4'];
 let colors = [];
@@ -47,19 +48,23 @@ const avgRadius = game.height / 40;
 // Game state handlers
 let gameState = '';
 let mode = '';
+let timePassed = 0;
+let lastLoop = 0;
 
 // Score/life keepers
 let score = 0;
 let lives = 0;
-// when using OR, if thing on left is falsy, then use the right side of OR
-// doesnt evaluate right side
+// NOTE: when using OR, if thing on left is falsy, then use the right side of OR (doesnt evaluate right side if truthy)
 let highScore = localStorage.getItem('highScore') || 0;
 
-// Game objects
+// Game elements
+// These are empty array to hold various instances of different classes
+// Such as the falling objects, the catchers, etc.
 let catchersArray = [];
-let fallingArray = []; // The array of falling objects that are alive
-let megaArray = []; // The array of Mega balls that are alive
+let fallingArray = [];
+let megaArray = [];
 let colorweight = 0;
+
 // Timeout Functions
 let initspawnLTimeout;
 let initspawnRTimeout;
@@ -73,10 +78,12 @@ let colorSwapRTimeout;
 let spawnMegaTimeout;
 let spawnMegaTimeoutDel;
 
-let timePassed = 0;
-let lastLoop = 0;
+// FUNCTIONAL FUNCTIONS //////////////////////////////////////////////////
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min) + min);
+}
 
-// Strings
+// STRINGS + MESSAGES ////////////////////////////////////////////////////
 const gameOverText = 'BIG F'.toUpperCase();
 const gametitle = 'untitled.Game(idk);'.toUpperCase(); //"trippin on coding" lul
 const instructions = 'Press space to start/pause'.toUpperCase();
@@ -84,11 +91,6 @@ const instructions2 = 'Use F & J keys'.toUpperCase();
 const instructions3 = 'Catch matching colors'.toUpperCase();
 const instructions4 = 'Beat your own High Score'.toUpperCase();
 const playAgainText = 'Space to play again'.toUpperCase();
-
-// GLOBAL FUNCTIONS //////////////////////////////////////////////////////
-function rand(min, max) {
-  return Math.floor(Math.random() * (max - min) + min);
-}
 
 function startMessage() {
   ctx.clearRect(0, 0, game.width, game.height);
@@ -121,11 +123,9 @@ function pauseMessage() {
   ctx.fillText(`pause`, getMiddleX, getMiddleY);
 }
 
-// GLOBAL CLASSES ////////////////////////////////////////////////////////
-// The catcher class
-// checks for matching keydown listner
-// renders
-// randomly changes colors
+// CLASSES ///////////////////////////////////////////////////////////////
+
+// The catcher class - aka: the bars on the bottom
 class Catcher {
   constructor(width, height, x, y, key) {
     this.color = colors[rand(0, colors.length)];
@@ -135,7 +135,7 @@ class Catcher {
     this.y = y;
     this.key = key;
     this.keydown = false;
-
+    // checks for keydown and up events
     document.addEventListener(
       'keydown',
       function (key) {
@@ -155,11 +155,10 @@ class Catcher {
       }.bind(this)
     );
   }
-
+  // renders the catcher
   render() {
     ctx.fillStyle = this.color;
     ctx.fillRect(this.x, this.y, this.width, this.height);
-    //TODO: turn this on?
     this.stroke();
     if (this.keydown) {
       ctx.fillRect(this.x - 5, this.y - 5, this.width + 10, this.height + 10);
@@ -168,13 +167,13 @@ class Catcher {
       ctx.fillStyle = this.color;
     }
   }
-
+  // randomly changes color
   changeColor() {
     // pick a new color not equal to previous color
     const otherColors = colors.filter((col) => col !== this.color);
     this.color = otherColors[rand(0, otherColors.length)];
   }
-
+  // aesthetics
   stroke() {
     ctx.shadowColor = '#FFFFFF30';
     ctx.shadowBlur = 5;
@@ -215,44 +214,46 @@ class Catcher {
   }
 }
 
-// Falling objects parent class
-// renders
-// updates position as it falls
+// Falling Ojects Parent Class
 class Fallingthings {
   //need an extended class
   constructor(colorweight) {
+    // random x,y spawn points
     this.x = rand(game.width / 4, (game.width / 4) * 3);
     this.y = rand(0, game.height / 8);
+    // randomyl selects a color from available colors
     this.color = colors[rand(0, colors.length)];
+    // for calculating gravity
     this.speedX = 0;
     this.speedY = 0;
     this.spawnX = this.x;
     this.spawnY = this.y;
-
+    // object travel path falls within a range onto the catcher
     this.slope = Math.random() * (0.3 - 0.15) + 0.15;
     //(Math.random() * (0.3 - 0.15) + 0.15);
     // Math.abs(-this.spawnY /
     // (rand(catcherXpos, catcherXpos + catcherWidth) - this.spawnX) ** 2);
-
-    //falls faster with higher score, but need to recalculate slope each time
-    this.gravity = 0.5;
+    this.gravity = 0.5; //falls faster with higher score, but need to recalculate slope each time
     this.gravitySpeed = 0;
     //sets direction the ball will fall
     this.direction = 1;
-    //todo: tweak these settings
     this.bounce = 1;
+    // uses a scaled avgRadius based on canvas size
     this.radius = avgRadius;
-    this.match = false;
-    this.alive = true; //if color matches catcher, change to true
-    this.caught = false;
-
-    this.keeprendering = true;
+    // toggles to control if its in play, if it will be rendered, and behavior
+    // objects can be dead and still render, they just wont count towards lives/points
+    this.match = false; // true if it matches the catcher color
+    this.alive = true; // true if in play and can affect points/lives
+    this.caught = false; // true if 'caught' and bounces
+    this.keeprendering = true; // true if its in the canvas boundaries
+    // degree of weighted colors based on the current catcher color
     this.colorweight = colorweight;
-
+    // for motion trail
     this.motionTrailArr = [];
     this.motionTrailLength = 30;
   }
 
+  // Saves the last position it was in before it is updated, used for motion trail
   lastPosition(x, y) {
     // called after the object is moved to a new position
     // saves it in the motion trail array
@@ -263,12 +264,12 @@ class Fallingthings {
     }
   }
 
+  // renders it
   render() {
-    // Renders the motion trail path based on the positions of the ball
-    // in the last 10 frames
+    // Renders the motion trail path based on the positions of the ball for last 20 frames
     for (let i = 0; i < this.motionTrailArr.length; i++) {
-      // opacity should be in reverse
-      // the last element of motion trail array is the closest to the current position
+      // the opacity and radius of each element in the motion trail array
+      // scales down the 'older' it is
       let trailopacity = Math.max(0.5, i / 30); //i/20*.75
       let trailradius = (i / 30) * this.radius;
 
@@ -281,15 +282,8 @@ class Fallingthings {
         2 * Math.PI,
         true
       );
-      //#00000090
-      // converts to hex
 
-      //use begin path to create a raindrop shape
-
-      //ctx.fillStyle = `${this.color}${trailopacity.toString(16)}`;
-      // parse hexadecimal color substring as 16 radix (hexadecimal)
-      //turns to rgb values
-
+      // convering the hexcodes into rgba
       const r = parseInt(this.color.substring(1, 3), 16);
       const g = parseInt(this.color.substring(3, 5), 16);
       const b = parseInt(this.color.substring(5, 7), 16);
@@ -306,6 +300,7 @@ class Fallingthings {
     ctx.closePath();
   }
 
+  // controls how the object falls
   fall(timeMultiplier) {
     this.lastPosition(this.x, this.y);
     this.speedY += this.gravity * timeMultiplier;
@@ -314,10 +309,13 @@ class Fallingthings {
       this.direction *
       Math.sqrt((this.y - game.height) / -this.slope) *
       timeMultiplier;
+
+    // if the ball is 'caught', call the bounce function
     if (this.caught) {
       this.bounceObj();
     }
 
+    // stop rendering once its off screen
     if (this.y > game.height || this.x > game.width || this.x < 0) {
       hit.play();
       this.keeprendering = false;
@@ -332,6 +330,7 @@ class Fallingthings {
     }
   }
 
+  // weights the color of the objects based on the current catchers color
   weightedColors(catcherColor) {
     // Creates a new array and fills it with the catcher color
     // We then concatenate the original colors list + the new array for a weighted array list
@@ -348,7 +347,6 @@ class Fallingthings {
 class FallingthingsL extends Fallingthings {
   constructor(catcherColor) {
     super();
-
     this.x = rand(0, game.width / 10);
     this.y = rand(0, game.height / 20);
     this.color = this.weightedColors(catcherColor);
@@ -356,23 +354,18 @@ class FallingthingsL extends Fallingthings {
   }
   //collision detection manages score + life keeping in the event of a collision
   collisionDetection() {
-    // every time it updates, it checks if its at or past the collision line
-    // so its detecting one object multiple times as its updating every few ms
-    //
-
+    // if it passes the catcher, take it out of the array and its now 'dead' but still rendering
     if (this.y > catcherYpos - this.radius) {
-      // if it passes the floor, take it out of the array
       const keydown = catcherR.keydown;
       this.alive = false;
-      // if keydown + matching
-      // +score
+      // logic to determine score/life count
+      // if this objects color matches the catcher + keydown, point++  and it bounces
       if (keydown && this.color == catcherR.color) {
         this.caught = true;
         plusScore.play();
         score++;
       }
-      // if not matching + keydown >> -1 life
-      // if matching and no keydown >> -1 life
+      // if not matching + keydown  OR if matching and no keydown, life--
       if (
         (!keydown && this.color == catcherR.color) ||
         (keydown && this.color !== catcherR.color)
@@ -387,7 +380,6 @@ class FallingthingsL extends Fallingthings {
 class FallingthingsR extends Fallingthings {
   constructor(catcherColor) {
     super();
-
     this.x = rand((game.width / 10) * 10, game.width);
     this.y = rand(0, game.height / 20);
     this.color = this.weightedColors(catcherColor);
@@ -395,23 +387,14 @@ class FallingthingsR extends Fallingthings {
   }
 
   collisionDetection() {
-    // every time it updates, it checks if its at or past the collision line
-    // so its detecting one object multiple times as its updating every few ms
-    //
-
     if (this.y > catcherYpos - this.radius) {
-      // if it passes the floor, take it out of the array
       const keydown = catcherL.keydown;
       this.alive = false;
-      // if keydown + matching
-      // +score
       if (keydown && this.color == catcherL.color) {
         this.caught = true;
         plusScore.play();
         score++;
       }
-      // if not matching + keydown >> -1 life
-      // if matching and no keydown >> -1 life
       if (
         (!keydown && this.color == catcherL.color) ||
         (keydown && this.color !== catcherL.color)
@@ -423,6 +406,7 @@ class FallingthingsR extends Fallingthings {
   }
 }
 
+// The mega ball classes which behaves differently from the other falling objects
 class FallingThingsMega extends Fallingthings {
   constructor() {
     super();
@@ -430,20 +414,19 @@ class FallingThingsMega extends Fallingthings {
     this.y = rand(0, game.height / 20);
     this.radius = game.height / 20;
     this.gravity = 0.5;
-    // if less than 0.5, give -1, else 1
-    //direction is dx
+    // picks a random direction to fall in unlike the L/R classes
     this.direction = Math.random() < 0.5 ? -1 : 1;
     this.slope = Math.random();
+    // unlike the falling objects, the color is always white for visual clarity
     this.color = '#FFFFFF';
   }
 
   fall() {
     this.lastPosition(this.x, this.y);
-
     this.y += this.gravity + this.slope;
     this.x += this.direction + this.slope;
 
-    // boucning the ball
+    // The mega ball bounces whenever it hits a border by changing gravity + direction
     if (this.y + 0 > game.height || this.y - 0 < 0) {
       this.gravity = -this.gravity;
     }
@@ -452,10 +435,9 @@ class FallingThingsMega extends Fallingthings {
     }
   }
 
-  // remove falling drops that it hits - destroy falling objects
-
-  //change in x and change in y
   collisionDetection() {
+    // compares the position of mega ball against each falling object in the array
+    // if they are close enough, it turns the object white and causes it to drop rapidly
     for (const obj of fallingArray) {
       //(x1-x2)*(x1-x2) + (y1-y2)*(y1-y2);
       let pointDist = (this.x - obj.x) ** 2 + (this.y - obj.y) ** 2;
@@ -490,25 +472,19 @@ class Sound {
   }
 }
 
-// Audio
-let bgmtracks = ['audio/bgm.mp3', 'audio/bgm2.mp3', 'audio/bgm3.mp3']
+// SFX
+let bgmtracks = ['audio/bgm.mp3', 'audio/bgm2.mp3', 'audio/bgm3.mp3'];
 hit = new Sound('audio/bong_001.ogg');
 plusScore = new Sound('audio/phaserUp3.ogg');
 minusLife = new Sound('audio/phaserDown3.ogg');
 catcherActive = new Sound('audio/tone1.ogg');
 objkilled = new Sound('audio/zap1.ogg');
 
+// FUNCTIONS THAT CONTROL DIFFERENT GAME ELEMENTS ////////////////////////
 
-// FUNCTIONS /////////////////////////////////////////////////////////////
-
-// CREATING ELEMENTS //////////////////////////////////////////////////////////////////
-
-// Creating the catchers
-// Catcher array to hold all the catcher instances
-
-// Creating the falling objects
-// These functions all use setTimeout to set a random timeout until the next object is created/color swap
-// This is for more randomness
+// These control the falling object spawns through a setTimeout with a random time passed
+// each time it's called, it creates a new falling object in the array
+// and sets a random timeout until the next one is spawned
 function spawnL() {
   if (gameState == 'play') {
     // we pass the catcher on the opposite side since it is supposed to match that one
@@ -528,6 +504,9 @@ function spawnR() {
   }, rand(1000, Math.max(6000 / (score + 1), 2000)));
 }
 
+// With the same logic these control the color changes of the catcher
+// except it doesn't create a new catcher
+// just calls the changeColor function of the instance
 function colorSwapL() {
   catcherL.changeColor();
   colorSwapLTimeout = setTimeout(function () {
@@ -542,7 +521,9 @@ function colorSwapR() {
   }, rand(9000, 20000));
 }
 
-// if mega already in play (megaArray.length>1, delete and set new timeout)
+// Controls the mega balls
+// creates a new one and sets a lifetime of 20s for it
+// then sets a random timeout for when the next is created
 function spawnMega() {
   if (gameState == 'play') {
     megaArray.push(new FallingThingsMega(colorweight));
@@ -561,7 +542,8 @@ function spawnMega() {
 }
 
 // RENDER //////////////////////////////////////////////////////////////
-// This function is only in charge of rendering the current state of the game - *never call updates from render
+// This function is only in charge of rendering the current state of the game
+// NOTE: - *never call updates from render
 function render() {
   ctx.clearRect(0, 0, game.width, game.height);
   ctx.font = '30px Montserrat Subrayada';
@@ -578,13 +560,13 @@ function render() {
   for (const obj of fallingArray) {
     obj.render();
   }
-
+  // renders mega balls
   for (const obj of megaArray) {
     obj.render();
   }
 }
 
-// UPDATE //////////////////////////////////////////////////////////////
+// UPDATE ////////////////////////////////////////////////////////////////
 // Updates the state of all falling objects with every game loop
 // Takes the amount of time passed since last loop as an argument
 // And passes to each object instance, to smooth rendering
@@ -598,18 +580,17 @@ function updateFallingThings(timePassed) {
       obj.collisionDetection();
     }
   }
-
+  // check for mega ball collision w/ every alive obj every update
   for (const mega of megaArray) {
     mega.fall(timePassed);
     mega.collisionDetection();
-    //obj.coll
   }
 
   // Filter the falling array with only objects that should continue to render
   // These can be dead or alive
   fallingArray = fallingArray.filter((obj) => obj.keeprendering);
 
-  // When the number of lives hits 0, stop tell the gameLoop to stop rendering
+  // When the number of lives hits 0, the game is over
   if (lives == 0) {
     gameState = 'over';
   }
@@ -622,12 +603,16 @@ function updateFallingThings(timePassed) {
 // The 'now' variable is always passed through the callback (gameloop) function
 // 'now' = dom timestamp in ms= current time since time of origin
 function gameLoop(now) {
-  timePassed = (now - lastLoop) / 1000;
+  // normalize how much object fall
   // save the current timestamp as lastloop for next frame
+  // timepassed = the time passed since the last frame was called/1000 (since it is in ms)
+  // lastloop var is the timestamp of the time we last called gameloop
+  timePassed = (now - lastLoop) / 1000;
   lastLoop = now;
+
   if (gameState == 'pause') {
     pauseMessage();
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(gameLoop); // continue rendering even if paused
   } else if (gameState == 'over') {
     // game is over
     // save local high score
@@ -637,30 +622,21 @@ function gameLoop(now) {
     }
     gameOverMessage();
   } else {
-    // timepassed = the time passed since the last frame was called/1000 (since it is in ms)
-    // lastloop var is the timestamp of the time we last called gameloop
-
-    // continue rendering with each gameloop
+    // continue updating and rendering with each gameloop, then recusively callback
     updateFallingThings(timePassed);
     render();
     requestAnimationFrame(gameLoop);
   }
 }
 
-// what states lead to what settings
-// create a flow diagram
-//
-
 // INIT //////////////////////////////////////////////////////////////////
-// Things inside are not global, only exist inside the init scope
-// Init handles all initialization and creation of the actual game objects + state
-// Should not create new functional functions/etc in here
+// Just initializes game, set timeouts and catchers with new colors
 function init() {
   // initial space to start game
   // We are now in the 'play' state
   gameState = 'play';
 
-  bgm = new Sound(bgmtracks[rand(0,3)]);
+  bgm = new Sound(bgmtracks[rand(0, 3)]);
   bgm.sound.volume = 0.2;
   bgm.sound.loop = true;
   bgm.play();
@@ -700,9 +676,11 @@ function init() {
 
   initspawnMegaTimeout = setTimeout(function () {
     spawnMega();
-  }, 1000);
+  }, 3000);
 }
 
+// RESET /////////////////////////////////////////////////////////////////
+// resets all variables and clears timeouts for a new game
 function reset() {
   gameState = '';
   timePassed = 0;
@@ -742,19 +720,24 @@ function reset() {
   }
 }
 
+// SPACE KEY EVENT LISTENER //////////////////////////////////////////////
+// event listener that handles game flow each time user interaction is needed
+// via the keyup event listener
 function handleKeyUp(key) {
   if (key.key !== ' ') {
     return;
   }
-
   if (!gameState) {
-
+    // if game has been restarted, or new game
+    // calls init and starts the game
     init();
     requestAnimationFrame(gameLoop);
   } else if (gameState == 'over') {
+    // if game is over, space starts a new game
     reset();
     startMessage();
   } else {
+    // toggles gameState each time space is pressed
     gameState = gameState == 'pause' ? 'play' : 'pause';
   }
 }
