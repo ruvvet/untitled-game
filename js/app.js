@@ -219,8 +219,8 @@ class Fallingthings {
   //need an extended class
   constructor(colorweight) {
     // random x,y spawn points
-    this.x = rand(game.width / 4, (game.width / 4) * 3);
-    this.y = rand(0, game.height / 8);
+    this.x = 0;
+    this.y = 0;
     // randomyl selects a color from available colors
     this.color = colors[rand(0, colors.length)];
     // for calculating gravity
@@ -229,12 +229,12 @@ class Fallingthings {
     this.spawnX = this.x;
     this.spawnY = this.y;
     // object travel path falls within a range onto the catcher
-    this.slope = Math.random() * (0.3 - 0.15) + 0.15;
+    this.slope = Math.random() * (0.1 - 0.12) + 0.1;
     //(Math.random() * (0.3 - 0.15) + 0.15);
     // Math.abs(-this.spawnY /
     // (rand(catcherXpos, catcherXpos + catcherWidth) - this.spawnX) ** 2);
-    this.gravity = 0.5; //falls faster with higher score, but need to recalculate slope each time
-    this.gravitySpeed = 0;
+    this.gravity = 1; //falls faster with higher score, but need to recalculate slope each time
+    //this.gravitySpeed = 0;
     //sets direction the ball will fall
     this.direction = 1;
     this.bounce = 1;
@@ -304,7 +304,7 @@ class Fallingthings {
   fall(timeMultiplier) {
     this.lastPosition(this.x, this.y);
     this.speedY += this.gravity * timeMultiplier;
-    this.y += this.speedY + this.gravitySpeed;
+    this.y += this.speedY// + this.gravitySpeed;
     this.x +=
       this.direction *
       Math.sqrt((this.y - game.height) / -this.slope) *
@@ -347,8 +347,10 @@ class Fallingthings {
 class FallingthingsL extends Fallingthings {
   constructor(catcherColor) {
     super();
-    this.x = rand(0, game.width / 10);
-    this.y = rand(0, game.height / 20);
+    this.x = rand(1, game.width / 30);
+    this.y = rand(1, game.height / 30);
+    console.log(game.width/30)
+
     this.color = this.weightedColors(catcherColor);
     this.direction = 1;
   }
@@ -380,8 +382,8 @@ class FallingthingsL extends Fallingthings {
 class FallingthingsR extends Fallingthings {
   constructor(catcherColor) {
     super();
-    this.x = rand((game.width / 10) * 10, game.width);
-    this.y = rand(0, game.height / 20);
+    this.x = rand(game.width * (29 / 30), game.width - 1);
+    this.y = rand(1, game.height / 30);
     this.color = this.weightedColors(catcherColor);
     this.direction = -1;
   }
@@ -410,27 +412,29 @@ class FallingthingsR extends Fallingthings {
 class FallingThingsMega extends Fallingthings {
   constructor() {
     super();
-    this.x = rand(0, game.width);
-    this.y = rand(0, game.height / 20);
+    this.x = rand(40, game.width-40);
+    this.y = rand(40, 100);
     this.radius = game.height / 20;
-    this.gravity = 0.5;
+    console.log(game.height/20);
+    this.gravity = 1;
     // picks a random direction to fall in unlike the L/R classes
     this.direction = Math.random() < 0.5 ? -1 : 1;
-    this.slope = Math.random();
     // unlike the falling objects, the color is always white for visual clarity
     this.color = '#FFFFFF';
   }
 
-  fall() {
+  fall(timeMultiplier) {
     this.lastPosition(this.x, this.y);
-    this.y += this.gravity + this.slope;
-    this.x += this.direction + this.slope;
+    this.speedY = this.gravity * timeMultiplier;
+    this.speedX = this.direction * timeMultiplier;
+    this.y += this.speedY *100;
+    this.x += this.speedX *100;
 
     // The mega ball bounces whenever it hits a border by changing gravity + direction
-    if (this.y + 0 > game.height || this.y - 0 < 0) {
+    if (this.y + this.radius > game.height || this.y - this.radius < 0) {
       this.gravity = -this.gravity;
     }
-    if (this.x + 0 > game.width || this.x - 0 < 0) {
+    if (this.x + this.radius > game.width || this.x - this.radius < 0) {
       this.direction = -this.direction;
     }
   }
