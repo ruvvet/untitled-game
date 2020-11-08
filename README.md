@@ -14,22 +14,23 @@ The bars, the balls, spawn points, and trajectory are random.
 
 ## How to play 🎮
 
-1. Go to [livesite](https://ruvvet.github.io).
-2. Catch the falling balls that match the color of the bar w/ the `f` & `j` keys.
-3. Successfully catching a matching ball nets your +1 point.
-4. Failing to catch a matching ball costs -1 life.
-5. Beat your own high score, the more points you get, the more balls that spawn.
-6. The game is over when you lose all your lives.
+>1. Go to [livesite](https://ruvvet.github.io).
+>2. Catch the falling balls that match the color of the bar w/ the `f` & `j` keys.
+>3. Successfully catching a matching ball nets your +1 point.
+>4. Failing to catch a matching ball costs -1 life.
+>5. Beat your own high score, the more points you get, the more balls that spawn.
+>6. The game is over when you lose all your lives.
 
 ### Screenshots
 
-![alt text](https://github.com/ruvvet/untitled-game/blob/main/img/Screenshot_1.png)
+![ss](https://github.com/ruvvet/untitled-game/blob/main/img/Screenshot_1.png)
+![ss](https://github.com/ruvvet/untitled-game/blob/main/img/game.gif)
 
 # Code snippets
 
-### Creating classes for major objects, such as the falling balls/objects
+### Creating classes for major objects, such as the falling balls/objects. And extending those classes so they have different behaviors.
 
-The constructor that controls all the behavior and qualities of each falling ball.
+The falling objects parent class was extended into 3 children classes: objects that fall from the left, objects that fall from the right, and the mega balls which are there to wreak havok.
 
 ```javascript
 class Fallingthings {
@@ -40,17 +41,7 @@ class Fallingthings {
     this.y = rand(0, game.height / 8);
     // initializes random color
     this.color = colors[rand(0, colors.length)];
-    this.speedX = 0;
-    this.speedY = 0;
-    this.spawnX = this.x;
-    this.spawnY = this.y;
-    // initializes random trajectory that will fall in range of the bar
-    this.slope = Math.random() * (0.3 - 0.15) + 0.15;
-    this.gravity = 0.5;
-    this.gravitySpeed = 0;
-    this.direction = 1;
-    this.bounce = 1;
-    this.radius = avgRadius;
+    //...
     this.match = false;
     // controls if the ball is still in play or not
     this.alive = true;
@@ -58,19 +49,34 @@ class Fallingthings {
     this.caught = false;
     // controls if the ball is kept rendering even if 'dead'
     this.keeprendering = true;
-    this.colorweight = colorweight;
-
-    this.motionTrailArr = [];
-    this.motionTrailLength = 30;
   }
 
   //...
 
+class FallingthingsL extends Fallingthings {
+  constructor(catcherColor) {
+    super();
+
+    //...
+
+class FallingthingsR extends Fallingthings {
+  constructor(catcherColor) {
+    super();
+
+    //...
+
+class FallingThingsMega extends Fallingthings {
+  constructor() {
+    super();
+
+    //...
+
 ```
+
 
 ### Travel path, collision detection, render logic, motion trails, and more.
 
-Functions for all these are handled inside the parent class.
+Functions for behavior and game logic for individual elements/instances are calculated using functions inside the parent/child classes.
 
 ```javascript
     //...
@@ -86,7 +92,7 @@ lastPosition(x, y) {
     }
   }
 
-
+// dictates how it will fall and react with other objects
 fall(timeMultiplier) {
     this.lastPosition(this.x, this.y);
     this.speedY += this.gravity * timeMultiplier;
@@ -105,31 +111,6 @@ fall(timeMultiplier) {
       this.keeprendering = false;
     }
   }
-
-```
-
-### Extending the falling objects class to create objects w/ different behaviors
-
-The falling objects parent class was extended into 3 children classes: objects that fall from the left, objects that fall from the right, and the mega balls which are there to wreak havok.
-
-```javascript
-class FallingthingsL extends Fallingthings {
-  constructor(catcherColor) {
-    super();
-
-    //...
-
-class FallingthingsR extends Fallingthings {
-  constructor(catcherColor) {
-    super();
-
-    //...
-
-class FallingThingsMega extends Fallingthings {
-  constructor() {
-    super();
-
-    //...
 
 ```
 
@@ -159,29 +140,63 @@ Using a random setTimeout to call a new spawn, and then recursively calling itse
   }
 ```
 
-### Update loop
+### Primary game loop
+
+Based on the current gamestate, this function renders, updates, and then calls the next frame to be painted.
 
 ```javascript
+function gameLoop(now) {
+
+  timePassed = (now - lastLoop) / 1000;
+  lastLoop = now;
+
+  if (gameState == 'pause') {
+    pauseMessage();
+    requestAnimationFrame(gameLoop); // continue rendering even if paused
+  } else if (gameState == 'over') {
+    // game is over
+    // save local high score
+    if (score > highScore) {
+      localStorage.setItem('highScore', score);
+      highScore = localStorage.getItem('highScore');
+    }
+    gameOverMessage();
+  } else {
+    // continue updating and rendering with each gameloop, then recusively callback
+    updateFallingThings(timePassed);
+    render();
+    requestAnimationFrame(gameLoop);
+  }
+}
 
 ```
-
-### Main game loop w/ requestanimationframe
-```javascript
-
-```
-
-
-
-
-
-
-
-| Functions       | Description                                                     |
+| **CLASSES**       | **Description**                                                     |
 | --------------- | --------------------------------------------------------------- |
-| `...`  | ...    |
+| `class Catcher`  | Creates 2 catchers with event listeners, they change colors randomly |
+| `class Fallingthings` | Creates falling objects at random intervals   |
+| ` class FallingthingsL` + `FallingthingsR` | Child classes of `Fallingthings` |
+| ` class FallingThingsMega` | Child class of `Fallingthings` with more different behaviors |
+| ` class Sound` | For BGM audio + SFX |
 
 
-| -Some- Variables | Description                                                      |
-| ---------------- | ---------------------------------------------------------------- |
-| `...`        | ...                                     |
- |
+| **FUNCTIONS**       | **Description**                                                     |
+| --------------- | --------------------------------------------------------------- |
+| `rand()`          | Returns a random number, easy to use version of `Math.random()`   |
+| `startMessage()`, `gameOverMessage()`, `pauseMessage()`   | Text messages for different game states   |
+| `render()`  | Inside the catcher + falling objects classes, renders objects on canvas |
+| `changeColor()`   | (Catcher class) - changes its color. |
+| `lastPosition()`     | (FallingObjects class) Saves the last position of the ball and pushes to an array to creat the motion trail  |
+| `fall()` | (FallingObjects class) calculates velocity and trajectory of fall |
+| `bounceObj ()` | (FallingObjects class) Determines if the ball will bounce or not and reverses gravity|
+| `weightedColors()` | (FallingObjects class) Weights the randomized colors based on the catchers current color|
+| `collisionDetection()` | (FallingObjects class) Detects if the object hit other objects and the next step of the game logic |
+| `spawnL()`, `spawnR()`, `megaSpawn()`, `colorSwapL()`, `colorSwapR()` | Creates a new instances of the class and pushes it into the array. Sets a random timeout for the next time it will be called |
+| `render()` | Not in a class, handles what's rendered on canvas at each loop|
+| `upddateFallingThings()`| Checks the state of each object in play and updates it to be rendered properly|
+| `gameLoop()`| The primary gameloop that checks game state and then renders, updates, and calls next frame to be painted|
+|`init()`| Initializes all the starting variables based on the mode|
+|`reset()`| Resets all variables and game state|
+|`handleKeyUp()` | Handles logic for what to do with the 'space' key event listener in different game states|
+
+
+

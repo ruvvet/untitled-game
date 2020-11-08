@@ -179,38 +179,6 @@ class Catcher {
     ctx.shadowBlur = 5;
     ctx.strokeStyle = '#FFFFFF30';
     ctx.lineWidth = 5;
-    // ctx.beginPath();
-    // ctx.moveTo(this.x + this.border, this.y);
-    // ctx.lineTo(this.x + this.width - this.border, this.y);
-    // ctx.quadraticCurveTo(
-    //   this.x + this.width - this.border,
-    //   this.y,
-    //   this.x + this.width,
-    //   this.y + this.border
-    // );
-    // ctx.lineTo(this.x + this.width, this.y + this.height - this.border);
-    // ctx.quadraticCurveTo(
-    //   this.x + this.width,
-    //   this.y + this.height - this.border,
-    //   this.x + this.width - this.border,
-    //   this.y + this.height
-    // );
-    // ctx.lineTo(this.x + this.border, this.y + this.height);
-    // ctx.quadraticCurveTo(
-    //   this.x + this.border,
-    //   this.y + this.height,
-    //   this.x,
-    //   this.y + this.height - this.border
-    // );
-    // ctx.lineTo(this.x, this.y + this.border);
-    // ctx.quadraticCurveTo(
-    //   this.x,
-    //   this.y + this.border,
-    //   this.x + this.border,
-    //   this.y
-    // );
-    // ctx.closePath();
-    // ctx.stroke();
   }
 }
 
@@ -219,8 +187,8 @@ class Fallingthings {
   //need an extended class
   constructor(colorweight) {
     // random x,y spawn points
-    this.x = 0;
-    this.y = 0;
+    this.x = rand(1, game.width / 30);
+    this.y = rand(1, game.height / 30);
     // randomyl selects a color from available colors
     this.color = colors[rand(0, colors.length)];
     // for calculating gravity
@@ -230,7 +198,10 @@ class Fallingthings {
     this.spawnY = this.y;
     // object travel path falls within a range onto the catcher
     this.slope = Math.random() * (0.1 - 0.12) + 0.1;
-    //(Math.random() * (0.3 - 0.15) + 0.15);
+
+    //this.spawnY/(Math.pow(catcherXpos - this.spawnX, 2))
+
+    //Math.random() * (0.1 - 0.12) + 0.1;
     // Math.abs(-this.spawnY /
     // (rand(catcherXpos, catcherXpos + catcherWidth) - this.spawnX) ** 2);
     this.gravity = 1; //falls faster with higher score, but need to recalculate slope each time
@@ -304,11 +275,22 @@ class Fallingthings {
   fall(timeMultiplier) {
     this.lastPosition(this.x, this.y);
     this.speedY += this.gravity * timeMultiplier;
-    this.y += this.speedY// + this.gravitySpeed;
+    this.y += this.speedY; // + this.gravitySpeed;
     this.x +=
-      this.direction *
       Math.sqrt((this.y - game.height) / -this.slope) *
+      this.direction *
       timeMultiplier;
+
+    // Math.sqrt(((this.y-this.spawnY)/this.slope)) * this.direction * timeMultiplier
+    // console.log('vertex', this.spawnY, this.spawnX)
+    // console.log('slope', this.slope)
+    // console.log('numerator', this.y-this.spawnY)
+    // console.log(Math.sqrt(((this.y-this.spawnY)/this.slope)))
+    // console.log('traveling', this.x, this.y)
+
+    // this.direction *
+    // Math.sqrt((this.y - game.height) / -this.slope) *
+    // timeMultiplier;
 
     // if the ball is 'caught', call the bounce function
     if (this.caught) {
@@ -349,8 +331,6 @@ class FallingthingsL extends Fallingthings {
     super();
     this.x = rand(1, game.width / 30);
     this.y = rand(1, game.height / 30);
-    console.log(game.width/30)
-
     this.color = this.weightedColors(catcherColor);
     this.direction = 1;
   }
@@ -412,10 +392,10 @@ class FallingthingsR extends Fallingthings {
 class FallingThingsMega extends Fallingthings {
   constructor() {
     super();
-    this.x = rand(40, game.width-40);
+    this.x = rand(40, game.width - 40);
     this.y = rand(40, 100);
     this.radius = game.height / 20;
-    console.log(game.height/20);
+    console.log(game.height / 20);
     this.gravity = 1;
     // picks a random direction to fall in unlike the L/R classes
     this.direction = Math.random() < 0.5 ? -1 : 1;
@@ -427,8 +407,8 @@ class FallingThingsMega extends Fallingthings {
     this.lastPosition(this.x, this.y);
     this.speedY = this.gravity * timeMultiplier;
     this.speedX = this.direction * timeMultiplier;
-    this.y += this.speedY *100;
-    this.x += this.speedX *100;
+    this.y += this.speedY * 100;
+    this.x += this.speedX * 100;
 
     // The mega ball bounces whenever it hits a border by changing gravity + direction
     if (this.y + this.radius > game.height || this.y - this.radius < 0) {
