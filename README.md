@@ -23,8 +23,8 @@ The bars, the balls, spawn points, and trajectory are random.
 
 ### Screenshots
 
-![ss](https://github.com/ruvvet/untitled-game/blob/main/img/Screenshot_1.png)
-![ss](https://github.com/ruvvet/untitled-game/blob/main/img/game.gif)
+![ss](https://github.com/ruvvet/untitled-game/blob/main/img/Screenshot_1.png)![ss](https://github.com/ruvvet/untitled-game/blob/main/img/game.gif)
+
 
 # Code snippets
 
