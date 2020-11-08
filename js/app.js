@@ -26,9 +26,9 @@ addEventListener('resize', () => {
 //const colors = ['#AC92EB', '#4FC1E8', '#A0D568', '#FFCE54', '#ED5564']; //pastels
 const allColors = ['#F5759B', '#D91D25', '#F7AE00', '#01C013', '#008DD4'];
 let colors = [];
-const randomCol = allColors[rand(0, allColors.length)];
-const otherCol = allColors.filter((col) => col !== randomCol);
-const randomCol2 = otherCol[rand(0, otherCol.length)];
+let randomCol = allColors[rand(0, allColors.length)];
+let otherCol = allColors.filter((col) => col !== randomCol);
+let randomCol2 = otherCol[rand(0, otherCol.length)];
 
 // For glowing effects of drawn elements
 ctx.lineJoin = 'round'; //rounded corners
@@ -46,8 +46,7 @@ const avgRadius = game.height / 40;
 // Initialized variables
 // Game state handlers
 let gameState = '';
-// let continueGame = false;
-// let pause = false;
+let mode = '';
 
 // Score/life keepers
 let score = 0;
@@ -57,14 +56,25 @@ let lives = 0;
 let highScore = localStorage.getItem('highScore') || 0;
 
 // Game objects
+let catchersArray = [];
 let fallingArray = []; // The array of falling objects that are alive
 let megaArray = []; // The array of Mega balls that are alive
-let catcherL;
-let catcherR;
+let colorweight = 0;
+// Timeout Functions
+let initspawnLTimeout;
+let initspawnRTimeout;
+let initcolorSwapLTimeout;
+let initcolorSwapRTimeout;
+let initspawnMegaTimeout;
+let spawnLTimeout;
+let spawnRTimeout;
+let colorSwapLTimeout;
+let colorSwapRTimeout;
+let spawnMegaTimeout;
+let spawnMegaTimeoutDel;
 
 let timePassed = 0;
 let lastLoop = 0;
-//let onPause = 0;
 
 // Strings
 const gameOverText = 'BIG F'.toUpperCase();
@@ -481,101 +491,181 @@ class Sound {
 }
 
 // Audio
+let bgmtracks = ['audio/bgm.mp3', 'audio/bgm2.mp3', 'audio/bgm3.mp3']
 hit = new Sound('audio/bong_001.ogg');
 plusScore = new Sound('audio/phaserUp3.ogg');
 minusLife = new Sound('audio/phaserDown3.ogg');
 catcherActive = new Sound('audio/tone1.ogg');
 objkilled = new Sound('audio/zap1.ogg');
-bgm = new Sound('audio/bgm.mp3');
-
-// var audio = new Audio(),
-//     i = 0;
-// var playlist = new Array('http://www.w3schools.com/htmL/horse.mp3', 'http://demos.w3avenue.com/html5-unleashed-tips-tricks-and-techniques/demo-audio.mp3');
-
-// audio.addEventListener('ended', function () {
-//     i = ++i < playlist.length ? i : 0;
-//     console.log(i)
-//     audio.src = playlist[i];
-//     audio.play();
-// }, true);
-// audio.volume = 0.3;
-// audio.loop = false;
-// audio.src = playlist[0];
-// audio.play();
 
 
+// FUNCTIONS /////////////////////////////////////////////////////////////
 
+// CREATING ELEMENTS //////////////////////////////////////////////////////////////////
+
+// Creating the catchers
+// Catcher array to hold all the catcher instances
+
+// Creating the falling objects
+// These functions all use setTimeout to set a random timeout until the next object is created/color swap
+// This is for more randomness
+function spawnL() {
+  if (gameState == 'play') {
+    // we pass the catcher on the opposite side since it is supposed to match that one
+    fallingArray.push(new FallingthingsL(catcherR.color, colorweight));
+  }
+  spawnLTimeout = setTimeout(function () {
+    spawnL();
+  }, rand(1000, Math.max(6000 / (score + 1), 2000)));
+}
+
+function spawnR() {
+  if (gameState == 'play') {
+    fallingArray.push(new FallingthingsR(catcherL.color, colorweight));
+  }
+  spawnRTimeout = setTimeout(function () {
+    spawnR();
+  }, rand(1000, Math.max(6000 / (score + 1), 2000)));
+}
+
+function colorSwapL() {
+  catcherL.changeColor();
+  colorSwapLTimeout = setTimeout(function () {
+    colorSwapL();
+  }, rand(9000, 20000));
+}
+
+function colorSwapR() {
+  catcherR.changeColor();
+  colorSwapRTimeout = setTimeout(function () {
+    colorSwapR();
+  }, rand(9000, 20000));
+}
+
+// if mega already in play (megaArray.length>1, delete and set new timeout)
+function spawnMega() {
+  if (gameState == 'play') {
+    megaArray.push(new FallingThingsMega(colorweight));
+  }
+  spawnMegaTimeoutDel = setTimeout(function () {
+    for (mega of megaArray) {
+      mega.keeprendering = false;
+      mega.alive = false;
+    }
+    megaArray.shift();
+    //mega.keeprendering = false;
+  }, 20000);
+  spawnMegaTimeout = setTimeout(function () {
+    spawnMega();
+  }, rand(20000, 40000));
+}
+
+// RENDER //////////////////////////////////////////////////////////////
+// This function is only in charge of rendering the current state of the game - *never call updates from render
+function render() {
+  ctx.clearRect(0, 0, game.width, game.height);
+  ctx.font = '30px Montserrat Subrayada';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillText(`Score: ${score}`, 100, 40);
+  ctx.fillText(`Lives: ${lives}`, game.width - 100, 40);
+  //ctx.save();
+
+  // Renders catchers
+  for (const catcher of catchersArray) {
+    catcher.render();
+  }
+  // Renders objects in fallingArray
+  for (const obj of fallingArray) {
+    obj.render();
+  }
+
+  for (const obj of megaArray) {
+    obj.render();
+  }
+}
+
+// UPDATE //////////////////////////////////////////////////////////////
+// Updates the state of all falling objects with every game loop
+// Takes the amount of time passed since last loop as an argument
+// And passes to each object instance, to smooth rendering
+function updateFallingThings(timePassed) {
+  for (const obj of fallingArray) {
+    // Call fall class function and update object's position
+    obj.fall(timePassed);
+    // If the object is alive, check for collision with catcher
+    // If dead, don't check and let it pass without calling collision rules
+    if (obj.alive) {
+      obj.collisionDetection();
+    }
+  }
+
+  for (const mega of megaArray) {
+    mega.fall(timePassed);
+    mega.collisionDetection();
+    //obj.coll
+  }
+
+  // Filter the falling array with only objects that should continue to render
+  // These can be dead or alive
+  fallingArray = fallingArray.filter((obj) => obj.keeprendering);
+
+  // When the number of lives hits 0, stop tell the gameLoop to stop rendering
+  if (lives == 0) {
+    gameState = 'over';
+  }
+}
+
+// MAIN GAME LOOP //////////////////////////////////////////////////////
+// The gameloop handles and updates all the macro game logic, renders, and game states
+// It is an animation function that we pass through requestanimationframe
+// And requestanimationframe uses it to continuously callback and update before the next frame is painted
+// The 'now' variable is always passed through the callback (gameloop) function
+// 'now' = dom timestamp in ms= current time since time of origin
+function gameLoop(now) {
+  timePassed = (now - lastLoop) / 1000;
+  // save the current timestamp as lastloop for next frame
+  lastLoop = now;
+  if (gameState == 'pause') {
+    pauseMessage();
+    requestAnimationFrame(gameLoop);
+  } else if (gameState == 'over') {
+    // game is over
+    // save local high score
+    if (score > highScore) {
+      localStorage.setItem('highScore', score);
+      highScore = localStorage.getItem('highScore');
+    }
+    gameOverMessage();
+  } else {
+    // timepassed = the time passed since the last frame was called/1000 (since it is in ms)
+    // lastloop var is the timestamp of the time we last called gameloop
+
+    // continue rendering with each gameloop
+    updateFallingThings(timePassed);
+    render();
+    requestAnimationFrame(gameLoop);
+  }
+}
 
 // what states lead to what settings
 // create a flow diagram
 //
 
-
-
-
-
 // INIT //////////////////////////////////////////////////////////////////
 // Things inside are not global, only exist inside the init scope
 // Init handles all initialization and creation of the actual game objects + state
 // Should not create new functional functions/etc in here
-//TODO: refactor this.
-function init(gamemode, chosenColors, colorweight, amtlives) {
-  // The new values of the mode, colors array, # of lives, and weighted colors
-  // Based on mode/difficulty
-  mode = gamemode;
-  colors = chosenColors;
-  lives = amtlives;
+function init() {
+  // initial space to start game
+  // We are now in the 'play' state
+  gameState = 'play';
 
-  function handleKeyUp(key) {
-    if (key.key !== ' ') {
-      return;
-    }
+  bgm = new Sound(bgmtracks[rand(0,3)]);
+  bgm.sound.volume = 0.2;
+  bgm.sound.loop = true;
+  bgm.play();
 
-    // pressing space makes it fall faster??????
-    console.log('space was pressed');
-    if (!gameState) {
-      // initial space to start game
-      // We are now in the 'play' state1
-      bgm.sound.volume = 0.2;
-      bgm.sound.loop = true;
-      bgm.play();
-      gameState = 'play';
-      console.log('in initial start', gameState);
-      initGame();
-      requestAnimationFrame(gameLoop);
-    } else if (gameState == 'over') {
-      //if lives ==0,
-      // it is over
-      gameState ='';
-      lastLoop =0;
-      if (mode == 'easy') {
-
-        init([randomCol, randomCol2], 5, 10);
-
-      } else if (mode == 'hard') {
-        init('hard', allColors, 3, 5);
-      }
-    } else {
-      console.log('gamestate now', gameState);
-      gameState = gameState == 'pause' ? 'play' : 'pause';
-      console.log('toggled to', gameState);
-    }
-    // switch
-    //
-  }
-
-  // Start msg w/ instructions
-  startMessage();
-  document.addEventListener('keyup', handleKeyUp);
-
-
-
-  // CREATING ELEMENTS //////////////////////////////////////////////////////////////////
-
-  // Creating the catchers
-  // Catcher array to hold all the catcher instances
-  // Passes width, height,x-, y-, and key to activate
-  const catchersArray = [
+  catchersArray = [
     (catcherL = new Catcher(
       catcherWidth,
       catcherHeight,
@@ -592,201 +682,104 @@ function init(gamemode, chosenColors, colorweight, amtlives) {
     )),
   ];
 
-  // Creating the falling objects
-  // These functions all use setTimeout to set a random timeout until the next object is created/color swap
-  // This is for more randomness
-  function spawnL() {
-    if (gameState == 'play') {
-      // we pass the catcher on the opposite side since it is supposed to match that one
-      fallingArray.push(new FallingthingsL(catcherR.color, colorweight));
-    }
-    setTimeout(function () {
-      spawnL();
-    }, rand(1000, Math.max(6000 / (score + 1), 2000))); ///3000,4000
+  initspawnLTimeout = setTimeout(function () {
+    spawnL();
+  }, 500);
+
+  initspawnRTimeout = setTimeout(function () {
+    spawnR();
+  }, 500);
+
+  initcolorSwapLTimeout = setTimeout(function () {
+    colorSwapL();
+  }, 5000);
+
+  initcolorSwapRTimeout = setTimeout(function () {
+    colorSwapR();
+  }, 5000);
+
+  initspawnMegaTimeout = setTimeout(function () {
+    spawnMega();
+  }, 1000);
+}
+
+function reset() {
+  gameState = '';
+  timePassed = 0;
+  lastLoop = 0;
+  score = 0;
+  colors = [];
+  randomCol = allColors[rand(0, allColors.length)];
+  otherCol = allColors.filter((col) => col !== randomCol);
+  randomCol2 = otherCol[rand(0, otherCol.length)];
+
+  catchersArray = [];
+  fallingArray = [];
+  megaArray = [];
+
+  clearTimeout(initspawnLTimeout);
+  clearTimeout(initspawnRTimeout);
+  clearTimeout(initcolorSwapLTimeout);
+  clearTimeout(initcolorSwapRTimeout);
+  clearTimeout(initspawnMegaTimeout);
+  clearTimeout(spawnLTimeout);
+  clearTimeout(spawnRTimeout);
+  clearTimeout(colorSwapLTimeout);
+  clearTimeout(colorSwapRTimeout);
+  clearTimeout(spawnMegaTimeout);
+  clearTimeout(spawnMegaTimeoutDel);
+
+  bgm.sound.src = '';
+
+  if (mode == 'easy') {
+    colors = [randomCol, randomCol2];
+    colorweight = 5;
+    lives = 10;
+  } else if (mode == 'hard') {
+    colors = allColors;
+    colorweight = 3;
+    lives = 5;
+  }
+}
+
+function handleKeyUp(key) {
+  if (key.key !== ' ') {
+    return;
   }
 
-  function spawnR() {
-    if (gameState == 'play') {
-      fallingArray.push(new FallingthingsR(catcherL.color, colorweight));
-    }
-    setTimeout(function () {
-      spawnR();
-    }, rand(1000, Math.max(6000 / (score + 1), 2000)));
-  }
+  if (!gameState) {
 
-  function colorSwapL() {
-    catcherL.changeColor();
-    setTimeout(function () {
-      colorSwapL();
-    }, rand(9000, 20000));
-  }
-
-  function colorSwapR() {
-    catcherR.changeColor();
-    setTimeout(function () {
-      colorSwapR();
-    }, rand(9000, 20000));
-  }
-
-  // if mega already in play (megaArray.length>1, delete and set new timeout)
-  function spawnMega() {
-    if (gameState == 'play') {
-      megaArray.push(new FallingThingsMega(colorweight));
-    }
-    setTimeout(function () {
-      for (mega of megaArray) {
-        mega.keeprendering = false;
-        mega.alive = false;
-      }
-      megaArray.shift();
-      //mega.keeprendering = false;
-    }, 20000);
-    setTimeout(function () {
-      spawnMega();
-    }, rand(20000, 40000));
-  }
-
-  // Initizes all the randomized generator functions for objects + catchers
-  // Calls each randomizer function after a set time
-  function initGame() {
-    setTimeout(function () {
-      spawnL();
-    }, 500);
-
-    setTimeout(function () {
-      spawnR();
-    }, 500);
-
-    setTimeout(function () {
-      colorSwapL();
-    }, 5000);
-
-    setTimeout(function () {
-      colorSwapR();
-    }, 5000);
-
-    setTimeout(function () {
-      spawnMega();
-    }, 1000);
-  }
-
-  // RENDER //////////////////////////////////////////////////////////////
-  // This function is only in charge of rendering the current state of the game - *never call updates from render
-  function render() {
-    ctx.clearRect(0, 0, game.width, game.height);
-    ctx.font = '30px Montserrat Subrayada';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillText(`Score: ${score}`, 100, 40);
-    ctx.fillText(`Lives: ${lives}`, game.width - 100, 40);
-    //ctx.save();
-
-    // Renders catchers
-    for (const catcher of catchersArray) {
-      catcher.render();
-    }
-    // Renders objects in fallingArray
-    for (const obj of fallingArray) {
-      obj.render();
-    }
-
-    for (const obj of megaArray) {
-      obj.render();
-    }
-  }
-
-  // UPDATE //////////////////////////////////////////////////////////////
-  // Updates the state of all falling objects with every game loop
-  // Takes the amount of time passed since last loop as an argument
-  // And passes to each object instance, to smooth rendering
-  function updateFallingThings(timePassed) {
-    for (const obj of fallingArray) {
-      // Call fall class function and update object's position
-      obj.fall(timePassed);
-      // If the object is alive, check for collision with catcher
-      // If dead, don't check and let it pass without calling collision rules
-      if (obj.alive) {
-        obj.collisionDetection();
-      }
-    }
-
-    for (const mega of megaArray) {
-      mega.fall(timePassed);
-      mega.collisionDetection();
-      //obj.coll
-    }
-
-    // Filter the falling array with only objects that should continue to render
-    // These can be dead or alive
-    fallingArray = fallingArray.filter((obj) => obj.keeprendering);
-
-    // When the number of lives hits 0, stop tell the gameLoop to stop rendering
-    if (lives == 0) {
-      gameState = 'over';
-      console.log('game should be over now');
-      // bgm.pause();
-    }
-  }
-
-  // MAIN GAME LOOP //////////////////////////////////////////////////////
-  // The gameloop handles and updates all the macro game logic, renders, and game states
-  // It is an animation function that we pass through requestanimationframe
-  // And requestanimationframe uses it to continuously callback and update before the next frame is painted
-  // The 'now' variable is always passed through the callback (gameloop) function
-  // 'now' = dom timestamp in ms= current time since time of origin
-  function gameLoop(now) {
-    timePassed = (now - lastLoop) / 1000;
-    // save the current timestamp as lastloop for next frame
-    lastLoop = now;
-    if (gameState == 'pause') {
-      //onPause = now;
-      //bgm.pause();
-      pauseMessage();
-      requestAnimationFrame(gameLoop);
-    }
-    /// ALJGDLSKJGVSKLJDGLSKDJGSLKJGIEMLKSAJDLKJSDJGOSIDGLKSDJGGGGGGSLDK
-    else if (gameState == 'over') {
-      // game is over
-      // save local high score
-      if (score > highScore) {
-        localStorage.setItem('highScore', score);
-        highScore = localStorage.getItem('highScore');
-      }
-      gameOverMessage();
-    } else {
-      console.log(gameState);
-      // timepassed = the time passed since the last frame was called/1000 (since it is in ms)
-      // lastloop var is the timestamp of the time we last called gameloop
-
-      // continue rendering with each gameloop
-      updateFallingThings(timePassed);
-      render();
-      requestAnimationFrame(gameLoop);
-    }
+    init();
+    requestAnimationFrame(gameLoop);
+  } else if (gameState == 'over') {
+    reset();
+    startMessage();
+  } else {
+    gameState = gameState == 'pause' ? 'play' : 'pause';
   }
 }
 
 // After dom has loaded, check for space key press to initialize a game with given parameters
 document.addEventListener('DOMContentLoaded', function () {
-
-
   document.getElementById('easy').addEventListener('click', function () {
-    //document.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('keyup', handleKeyUp);
     document.getElementById('easy').style.display = 'none';
     document.getElementById('hard').style.display = 'none';
-    init('easy', [randomCol, randomCol2], 5, 10);
+    mode = 'easy';
+    colors = [randomCol, randomCol2];
+    colorweight = 5;
+    lives = 10;
+    startMessage();
   });
 
   document.getElementById('hard').addEventListener('click', function () {
-    //document.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('keyup', handleKeyUp);
     document.getElementById('easy').style.display = 'none';
     document.getElementById('hard').style.display = 'none';
-    init('hard', allColors, 3, 5);
+    mode = 'hard';
+    colors = allColors;
+    colorweight = 3;
+    lives = 5;
+    startMessage();
   });
 });
-
-// options for pause and reset
-// gamestate issues
-// i hate ==
-// pressing space at the start causes it to still toggle?
-// pressing spaece to toggle it back to play causes the spawns to be called again????
-// why? ^^^^
