@@ -197,10 +197,9 @@ class Fallingthings {
     this.spawnX = this.x;
     this.spawnY = this.y;
     // object travel path falls within a range onto the catcher
-    this.slope = Math.random() * (0.1 - 0.12) + 0.1;
+    this.slope = Math.random() * (0.1 - 0.13) + 0.1;
 
-    //this.spawnY/(Math.pow(catcherXpos - this.spawnX, 2))
-
+    //(1)/(this.spawnX**2);
     //Math.random() * (0.1 - 0.12) + 0.1;
     // Math.abs(-this.spawnY /
     // (rand(catcherXpos, catcherXpos + catcherWidth) - this.spawnX) ** 2);
@@ -280,13 +279,6 @@ class Fallingthings {
       Math.sqrt((this.y - game.height) / -this.slope) *
       this.direction *
       timeMultiplier;
-
-    // Math.sqrt(((this.y-this.spawnY)/this.slope)) * this.direction * timeMultiplier
-    // console.log('vertex', this.spawnY, this.spawnX)
-    // console.log('slope', this.slope)
-    // console.log('numerator', this.y-this.spawnY)
-    // console.log(Math.sqrt(((this.y-this.spawnY)/this.slope)))
-    // console.log('traveling', this.x, this.y)
 
     // this.direction *
     // Math.sqrt((this.y - game.height) / -this.slope) *
