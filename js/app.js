@@ -191,20 +191,18 @@ class Fallingthings {
     this.y = rand(1, game.height / 30);
     // randomyl selects a color from available colors
     this.color = colors[rand(0, colors.length)];
-    // for calculating gravity
-    this.speedX = 0;
-    this.speedY = 0;
-    this.spawnX = this.x;
-    this.spawnY = this.y;
-    // object travel path falls within a range onto the catcher
-    this.slope = Math.random() * (0.1 - 0.13) + 0.1;
 
-    //(1)/(this.spawnX**2);
-    //Math.random() * (0.1 - 0.12) + 0.1;
-    // Math.abs(-this.spawnY /
-    // (rand(catcherXpos, catcherXpos + catcherWidth) - this.spawnX) ** 2);
+    // new calculation
+    this.a = 0;
+
+    // old calculation
+    // for calculating gravity
+    // this.speedX = 0;
+    // this.speedY = 0;
+    // this.slope = Math.random() * (0.1 - 0.13) + 0.1;
     this.gravity = 1; //falls faster with higher score, but need to recalculate slope each time
-    //this.gravitySpeed = 0;
+    // //this.gravitySpeed = 0;
+
     //sets direction the ball will fall
     this.direction = 1;
     this.bounce = 1;
@@ -273,16 +271,22 @@ class Fallingthings {
   // controls how the object falls
   fall(timeMultiplier) {
     this.lastPosition(this.x, this.y);
-    this.speedY += this.gravity * timeMultiplier;
-    this.y += this.speedY; // + this.gravitySpeed;
-    this.x +=
-      Math.sqrt((this.y - game.height) / -this.slope) *
-      this.direction *
-      timeMultiplier;
 
-    // this.direction *
-    // Math.sqrt((this.y - game.height) / -this.slope) *
-    // timeMultiplier;
+    // calculated using the quadratic equation
+    this.x += 1 * this.direction * timeMultiplier * 100;
+    this.y =
+      this.a * this.x ** 2 -
+      2 * this.a * this.x * this.spawnX +
+      this.a * this.spawnX ** 2 +
+      this.spawnY * timeMultiplier * this.gravity;
+
+    // old calculation
+    // this.speedY += this.gravity * timeMultiplier;
+    // this.y += this.speedY; // + this.gravitySpeed;
+    // this.x +=
+    //   Math.sqrt((this.y - game.height) / -this.slope) *
+    //   this.direction *
+    //   timeMultiplier;
 
     // if the ball is 'caught', call the bounce function
     if (this.caught) {
@@ -299,8 +303,19 @@ class Fallingthings {
   bounceObj() {
     if (this.y > catcherYpos - this.radius) {
       this.y = catcherYpos - this.radius;
+
+      // fake bounce
+      this.y =
+        catcherYpos -
+        catcherHeight -
+        (this.a * this.x ** 2 -
+          2 * this.a * this.x * this.spawnX +
+          this.a * this.spawnX ** 2 +
+          this.spawnY -
+          catcherYpos);
+
       //this.gravitySpeed = -(this.gravitySpeed * this.bounce);
-      this.speedY = -this.speedY * 0.65;
+      //this.speedY = -this.speedY * 0.65;
     }
   }
 
@@ -325,6 +340,17 @@ class FallingthingsL extends Fallingthings {
     this.y = rand(1, game.height / 30);
     this.color = this.weightedColors(catcherColor);
     this.direction = 1;
+    this.spawnX = this.x;
+    this.spawnY = this.y;
+
+    this.a =
+      (game.height - this.spawnY) /
+      (rand(
+        game.width - (catcherXpos + catcherWidth),
+        game.width - catcherXpos
+      ) -
+        this.spawnX) **
+        2;
   }
   //collision detection manages score + life keeping in the event of a collision
   collisionDetection() {
@@ -358,6 +384,12 @@ class FallingthingsR extends Fallingthings {
     this.y = rand(1, game.height / 30);
     this.color = this.weightedColors(catcherColor);
     this.direction = -1;
+    this.spawnX = this.x;
+    this.spawnY = this.y;
+
+    this.a =
+      (game.height - this.spawnY) /
+      (rand(catcherXpos, catcherXpos + catcherWidth) - this.spawnX) ** 2;
   }
 
   collisionDetection() {
@@ -387,7 +419,6 @@ class FallingThingsMega extends Fallingthings {
     this.x = rand(40, game.width - 40);
     this.y = rand(40, 100);
     this.radius = game.height / 20;
-    console.log(game.height / 20);
     this.gravity = 1;
     // picks a random direction to fall in unlike the L/R classes
     this.direction = Math.random() < 0.5 ? -1 : 1;
@@ -420,7 +451,7 @@ class FallingThingsMega extends Fallingthings {
       if (pointDist < this.radius + obj.radius + 100) {
         obj.color = '#FFFFFF';
         obj.alive = false;
-        obj.gravity = 3;
+        obj.gravity = 10;
         //obj.keeprendering = false;
         objkilled.play();
       }
