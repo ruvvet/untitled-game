@@ -43,6 +43,8 @@ const catcherHeight = game.height / 20;
 const catcherXpos = (getMiddleX - catcherWidth) / 2;
 const catcherYpos = game.height - catcherHeight * 2;
 const avgRadius = game.height / 40;
+const fontSize = game.height/25;
+const fontStyle = 'Montserrat Subrayada';
 
 // Initialized variables
 // Game state handlers
@@ -96,9 +98,9 @@ function startMessage() {
   ctx.clearRect(0, 0, game.width, game.height);
   ctx.fillStyle = '#FFFFFF';
   ctx.textAlign = 'center';
-  ctx.font = '30px Montserrat Subrayada';
+  ctx.font = `${fontSize}px ${fontStyle}`;
   ctx.fillText(`${gametitle}`, getMiddleX, getMiddleY - 140);
-  ctx.font = '20px Montserrat Subrayada';
+  ctx.font = `${fontSize-10}px ${fontStyle}`;
   ctx.fillText(`${instructions}`, getMiddleX, getMiddleY - 20);
   ctx.fillText(`${instructions2}`, getMiddleX, getMiddleY);
   ctx.fillText(`${instructions3}`, getMiddleX, getMiddleY + 20);
@@ -107,9 +109,9 @@ function startMessage() {
 
 function gameOverMessage() {
   ctx.clearRect(0, 0, game.width, game.height);
-  ctx.font = '80px Montserrat Subrayada';
+  ctx.font = `${fontSize*3}px ${fontStyle}`;
   ctx.fillText(`${gameOverText}`, getMiddleX, getMiddleY);
-  ctx.font = '20px Montserrat Subrayada';
+  ctx.font = `${fontSize-5}px ${fontStyle}`;
   ctx.fillText(
     `Score: ${score}     High Score: ${highScore}`,
     getMiddleX,
@@ -192,16 +194,18 @@ class Fallingthings {
     // randomyl selects a color from available colors
     this.color = colors[rand(0, colors.length)];
 
-    // new calculation
+    // new calculation ////////////////
     this.a = 0;
 
-    // old calculation
+    // old calculation/////////////
     // for calculating gravity
     // this.speedX = 0;
     // this.speedY = 0;
     // this.slope = Math.random() * (0.1 - 0.13) + 0.1;
     this.gravity = 1; //falls faster with higher score, but need to recalculate slope each time
     // //this.gravitySpeed = 0;
+    //////////////////////////////
+
 
     //sets direction the ball will fall
     this.direction = 1;
@@ -280,13 +284,14 @@ class Fallingthings {
       this.a * this.spawnX ** 2 +
       this.spawnY * timeMultiplier * this.gravity;
 
-    // old calculation
+    // old calculation ///////////
     // this.speedY += this.gravity * timeMultiplier;
     // this.y += this.speedY; // + this.gravitySpeed;
     // this.x +=
     //   Math.sqrt((this.y - game.height) / -this.slope) *
     //   this.direction *
     //   timeMultiplier;
+    //////////////////////////////
 
     // if the ball is 'caught', call the bounce function
     if (this.caught) {
@@ -314,8 +319,10 @@ class Fallingthings {
           this.spawnY -
           catcherYpos);
 
+      // old calculation /////////
       //this.gravitySpeed = -(this.gravitySpeed * this.bounce);
       //this.speedY = -this.speedY * 0.65;
+      //////////////////////////////
     }
   }
 
@@ -553,7 +560,7 @@ function spawnMega() {
 // NOTE: - *never call updates from render
 function render() {
   ctx.clearRect(0, 0, game.width, game.height);
-  ctx.font = '30px Montserrat Subrayada';
+  ctx.font = `${fontSize}px ${fontStyle}`; //30px Montserrat Subrayada`
   ctx.fillStyle = '#FFFFFF';
   ctx.fillText(`Score: ${score}`, 100, 40);
   ctx.fillText(`Lives: ${lives}`, game.width - 100, 40);
