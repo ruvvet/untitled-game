@@ -43,7 +43,7 @@ const catcherHeight = game.height / 20;
 const catcherXpos = (getMiddleX - catcherWidth) / 2;
 const catcherYpos = game.height - catcherHeight * 2;
 const avgRadius = game.height / 40;
-const fontSize = game.height/25;
+const fontSize = game.height / 25;
 const fontStyle = 'Montserrat Subrayada';
 
 // Initialized variables
@@ -87,7 +87,7 @@ function rand(min, max) {
 
 // STRINGS + MESSAGES ////////////////////////////////////////////////////
 const gameOverText = 'BIG F'.toUpperCase();
-const gametitle = 'untitled.Game(idk);'.toUpperCase(); //"trippin on coding" lul
+const gametitle = 'untitled.Game(idk);'.toUpperCase();
 const instructions = 'Press space to start/pause'.toUpperCase();
 const instructions2 = 'Use F & J keys'.toUpperCase();
 const instructions3 = 'Catch matching colors'.toUpperCase();
@@ -100,7 +100,7 @@ function startMessage() {
   ctx.textAlign = 'center';
   ctx.font = `${fontSize}px ${fontStyle}`;
   ctx.fillText(`${gametitle}`, getMiddleX, getMiddleY - 140);
-  ctx.font = `${fontSize-10}px ${fontStyle}`;
+  ctx.font = `${fontSize - 10}px ${fontStyle}`;
   ctx.fillText(`${instructions}`, getMiddleX, getMiddleY - 20);
   ctx.fillText(`${instructions2}`, getMiddleX, getMiddleY);
   ctx.fillText(`${instructions3}`, getMiddleX, getMiddleY + 20);
@@ -109,9 +109,9 @@ function startMessage() {
 
 function gameOverMessage() {
   ctx.clearRect(0, 0, game.width, game.height);
-  ctx.font = `${fontSize*3}px ${fontStyle}`;
+  ctx.font = `${fontSize * 3}px ${fontStyle}`;
   ctx.fillText(`${gameOverText}`, getMiddleX, getMiddleY);
-  ctx.font = `${fontSize-5}px ${fontStyle}`;
+  ctx.font = `${fontSize - 5}px ${fontStyle}`;
   ctx.fillText(
     `Score: ${score}     High Score: ${highScore}`,
     getMiddleX,
@@ -137,6 +137,8 @@ class Catcher {
     this.y = y;
     this.key = key;
     this.keydown = false;
+    this.warningOn = false;
+    this.warningColor = '#FFFFFF';
     // checks for keydown and up events
     document.addEventListener(
       'keydown',
@@ -159,22 +161,65 @@ class Catcher {
   }
   // renders the catcher
   render() {
+    console.log(this.warningOn)
+
     ctx.fillStyle = this.color;
     ctx.fillRect(this.x, this.y, this.width, this.height);
     this.stroke();
+    // if (!this.warningOn) {
+    //   ctx.fillStyle = this.color;
+    //   ctx.fillRect(this.x, this.y, this.width, this.height);
+    //   this.stroke();
+    // }
+    if (this.warningOn) {
+      ctx.fillStyle = this.warningColor;
+      ctx.fillRect(this.x, this.y, this.width, this.height);
+
+    }
     if (this.keydown) {
       ctx.fillRect(this.x - 5, this.y - 5, this.width + 10, this.height + 10);
     }
     if (!this.keydown) {
       ctx.fillStyle = this.color;
     }
+
+
   }
   // randomly changes color
   changeColor() {
-    // pick a new color not equal to previous color
     const otherColors = colors.filter((col) => col !== this.color);
     this.color = otherColors[rand(0, otherColors.length)];
   }
+  //testing
+//   changeColor() {
+//     console.log('will change colors in 3')
+//     this.warningOn = false;
+
+//     // let colorSwapWarning = setInterval(function () {
+//     //   this.warningOn = true;
+//     //   console.log(this.warningOn);
+//     //   setTimeout(function () {
+//     //     this.warningOn = false;
+//     //     console.log(this.warningOn);
+//     //   }, 500);
+//     // }, 1000);
+
+//     setTimeout(function () {
+//       const otherColors = colors.filter((col) => col !== this.color);
+//       this.color = otherColors[rand(0, otherColors.length)];
+// ;
+//     }, 3000);
+
+//     // pick a new color not equal to previous color
+//     // const otherColors = colors.filter((col) => col !== this.color);
+//     // this.color = otherColors[rand(0, otherColors.length)];
+//   }
+
+//   colorWarning (){
+//     console.log('prepping to change colors');
+//     this.warningOn = true;
+//   }
+
   // aesthetics
   stroke() {
     ctx.shadowColor = '#FFFFFF30';
@@ -205,7 +250,6 @@ class Fallingthings {
     this.gravity = 1; //falls faster with higher score, but need to recalculate slope each time
     // //this.gravitySpeed = 0;
     //////////////////////////////
-
 
     //sets direction the ball will fall
     this.direction = 1;
@@ -522,6 +566,7 @@ function spawnR() {
 // except it doesn't create a new catcher
 // just calls the changeColor function of the instance
 function colorSwapL() {
+  //catcherL.colorWarning();
   catcherL.changeColor();
   colorSwapLTimeout = setTimeout(function () {
     colorSwapL();
@@ -529,6 +574,7 @@ function colorSwapL() {
 }
 
 function colorSwapR() {
+  //catcherR.colorWarning();
   catcherR.changeColor();
   colorSwapRTimeout = setTimeout(function () {
     colorSwapR();

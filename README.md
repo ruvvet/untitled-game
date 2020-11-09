@@ -28,6 +28,21 @@ The bars, the balls, spawn points, and trajectory are random.
 
 # Code snippets
 
+### Game state logic
+
+Many variables control differnent asepcts of the game, but the gameState variable controls the overall flow of the user experience. Different states give different decision trees with the same user input. 
+
+```javascript
+let gameState = '';
+
+// can be '' for no game in play
+// can be 'play' for game is in play - continue to render + update
+// can be 'pause for when it's paused, continues to render but does not update
+// can be 'over' for when the game is finalized and we're prepping to reset + move on
+
+```
+
+
 ### Creating classes for major objects, such as the falling balls/objects. And extending those classes so they have different behaviors.
 
 The falling objects parent class was extended into 3 children classes: objects that fall from the left, objects that fall from the right, and the mega balls which are there to wreak havok.
