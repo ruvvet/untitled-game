@@ -139,6 +139,8 @@ class Catcher {
     this.keydown = false;
     this.warningOn = false;
     this.warningColor = '#FFFFFF';
+    this.warnCounter = 0;
+
     // checks for keydown and up events
     document.addEventListener(
       'keydown',
@@ -161,8 +163,6 @@ class Catcher {
   }
   // renders the catcher
   render() {
-    console.log(this.warningOn)
-
     ctx.fillStyle = this.color;
     ctx.fillRect(this.x, this.y, this.width, this.height);
     this.stroke();
@@ -172,9 +172,10 @@ class Catcher {
     //   this.stroke();
     // }
     if (this.warningOn) {
-      ctx.fillStyle = this.warningColor;
-      ctx.fillRect(this.x, this.y, this.width, this.height);
-
+      // stroke instead of fill
+      // ctx.fillStyle = this.warningColor;
+      // ctx.fillRect(this.x + 3, this.y +3, this.width - 6, this.height - 6);
+      ctx.clearRect(this.x + 5, this.y +5, this.width - 10, this.height - 10);
     }
     if (this.keydown) {
       ctx.fillRect(this.x - 5, this.y - 5, this.width + 10, this.height + 10);
@@ -182,43 +183,81 @@ class Catcher {
     if (!this.keydown) {
       ctx.fillStyle = this.color;
     }
-
-
   }
   // randomly changes color
-  changeColor() {
-    const otherColors = colors.filter((col) => col !== this.color);
-    this.color = otherColors[rand(0, otherColors.length)];
-  }
+  // changeColor() {
+  //   const otherColors = colors.filter((col) => col !== this.color);
+  //   this.color = otherColors[rand(0, otherColors.length)];
+  // }
+
   //testing
-//   changeColor() {
-//     console.log('will change colors in 3')
-//     this.warningOn = false;
+  changeColor() {
+    this.warnCounter = 0;
+    let colorSwapWarning = setInterval(
+      function () {
+        this.warningOn = !this.warningOn;
+        if (this.warnCounter){
+          this.warnCounter++;}
+      }.bind(this),
+      200
+    );
 
-//     // let colorSwapWarning = setInterval(function () {
-//     //   this.warningOn = true;
-//     //   console.log(this.warningOn);
-//     //   setTimeout(function () {
-//     //     this.warningOn = false;
-//     //     console.log(this.warningOn);
-//     //   }, 500);
-//     // }, 1000);
 
-//     setTimeout(function () {
-//       const otherColors = colors.filter((col) => col !== this.color);
-//       this.color = otherColors[rand(0, otherColors.length)];
-// ;
-//     }, 3000);
+    setTimeout(function(){
+      clearInterval(colorSwapWarning);
+      ctx.fillRect(this.x, this.y, this.width, this.height);
+      const otherColors = colors.filter((col) => col !== this.color);
+      this.color = otherColors[rand(0, otherColors.length)];
+    }.bind(this), 800)
+    // console.log(this.warnCounter);
+    // if (this.warnCounter ==4){
+    //   clearInterval(colorSwapWarning);
+    //   const otherColors = colors.filter((col) => col !== this.color);
+    //   this.color = otherColors[rand(0, otherColors.length)];
 
-//     // pick a new color not equal to previous color
-//     // const otherColors = colors.filter((col) => col !== this.color);
-//     // this.color = otherColors[rand(0, otherColors.length)];
-//   }
+    // }
 
-//   colorWarning (){
-//     console.log('prepping to change colors');
-//     this.warningOn = true;
-//   }
+    // if (this.warningOn){
+    //   warningCounter ++
+    //   console.log(warningCounter)
+    //   if (warningCounter ==6){
+    //     clearInterval(colorSwapWarning)
+    //   }}
+
+    // setTimeout(function () {
+    //   clearInterval(colorSwapWarning);
+    //   console.log('cleared')
+    //   const otherColors = colors.filter((col) => col !== this.color);
+    //   this.color = otherColors[rand(0, otherColors.length)];
+    // }, 5000);
+
+    //apply, bind, call - core js functions that solve the problem of how to give context to a function
+    // context - scope
+
+    // let colorSwapWarning = setInterval(function () {
+    //   this.warningOn = true;
+    //   console.log(this.warningOn);
+    //   setTimeout(function () {
+    //     this.warningOn = false;
+    //     console.log(this.warningOn);
+    //   }, 500);
+    // }, 1000);
+
+    //     setTimeout(function () {
+    //       const otherColors = colors.filter((col) => col !== this.color);
+    //       this.color = otherColors[rand(0, otherColors.length)];
+    // ;
+    //     }, 3000);
+
+    // pick a new color not equal to previous color
+    // const otherColors = colors.filter((col) => col !== this.color);
+    // this.color = otherColors[rand(0, otherColors.length)];
+  }
+
+  // colorWarning (){
+  //   console.log('prepping to change colors');
+  //   this.warningOn = true;
+  // }
 
   // aesthetics
   stroke() {
@@ -245,15 +284,15 @@ class Fallingthings {
     // old calculation/////////////
     // for calculating gravity
     // this.speedX = 0;
-    // this.speedY = 0;
+    this.speedY = 0;
     // this.slope = Math.random() * (0.1 - 0.13) + 0.1;
     this.gravity = 1; //falls faster with higher score, but need to recalculate slope each time
-    // //this.gravitySpeed = 0;
+    this.gravitySpeed = 0;
     //////////////////////////////
 
     //sets direction the ball will fall
     this.direction = 1;
-    this.bounce = 1;
+    this.bounce = 0.6;
     // uses a scaled avgRadius based on canvas size
     this.radius = avgRadius;
     // toggles to control if its in play, if it will be rendered, and behavior
@@ -321,27 +360,30 @@ class Fallingthings {
     this.lastPosition(this.x, this.y);
 
     // calculated using the quadratic equation
-    this.x += 1 * this.direction * timeMultiplier * 100;
-    this.y =
-      this.a * this.x ** 2 -
-      2 * this.a * this.x * this.spawnX +
-      this.a * this.spawnX ** 2 +
-      this.spawnY * timeMultiplier * this.gravity;
+    this.x += this.direction * timeMultiplier * 100;
 
     // old calculation ///////////
-    // this.speedY += this.gravity * timeMultiplier;
+    this.speedY += this.gravity * timeMultiplier;
     // this.y += this.speedY; // + this.gravitySpeed;
     // this.x +=
     //   Math.sqrt((this.y - game.height) / -this.slope) *
     //   this.direction *
     //   timeMultiplier;
-    //////////////////////////////
+    // ////////////////////////////
+
+    this.gravitySpeed += this.gravity;
 
     // if the ball is 'caught', call the bounce function
     if (this.caught) {
-      this.bounceObj();
+      //this.bounceObj();
+      this.y -= this.speedY;
+    } else {
+      this.y =
+        this.a * this.x ** 2 -
+        2 * this.a * this.x * this.spawnX +
+        this.a * this.spawnX ** 2 +
+        this.spawnY * timeMultiplier * this.gravity;
     }
-
     // stop rendering once its off screen
     if (this.y > game.height || this.x > game.width || this.x < 0) {
       hit.play();
@@ -349,26 +391,26 @@ class Fallingthings {
     }
   }
 
-  bounceObj() {
-    if (this.y > catcherYpos - this.radius) {
-      this.y = catcherYpos - this.radius;
+  // bounceObj() {
+  //   if (this.y > catcherYpos - this.radius) {
+  //     this.y = catcherYpos - this.radius;
+  //     // fake bounce
+  //     // this.y =
+  //     //   catcherYpos -
+  //     //   catcherHeight -
+  //     //   (this.a * this.x ** 2 -
+  //     //     2 * this.a * this.x * this.spawnX +
+  //     //     this.a * this.spawnX ** 2 +
+  //     //     this.spawnY -
+  //     //     catcherYpos);
+  //     //     console.log(this.x, this.y)
 
-      // fake bounce
-      this.y =
-        catcherYpos -
-        catcherHeight -
-        (this.a * this.x ** 2 -
-          2 * this.a * this.x * this.spawnX +
-          this.a * this.spawnX ** 2 +
-          this.spawnY -
-          catcherYpos);
-
-      // old calculation /////////
-      //this.gravitySpeed = -(this.gravitySpeed * this.bounce);
-      //this.speedY = -this.speedY * 0.65;
-      //////////////////////////////
-    }
-  }
+  //     // old calculation /////////
+  //     // this.gravitySpeed = -(this.gravitySpeed * this.bounce);
+  //     this.speedY = -this.speedY * 0.65;
+  //     //////////////////////////////
+  //   }
+  // }
 
   // weights the color of the objects based on the current catchers color
   weightedColors(catcherColor) {
@@ -413,6 +455,7 @@ class FallingthingsL extends Fallingthings {
       // if this objects color matches the catcher + keydown, point++  and it bounces
       if (keydown && this.color == catcherR.color) {
         this.caught = true;
+        this.speedY = 0.5 * this.speedY;
         plusScore.play();
         score++;
       }
@@ -566,7 +609,6 @@ function spawnR() {
 // except it doesn't create a new catcher
 // just calls the changeColor function of the instance
 function colorSwapL() {
-  //catcherL.colorWarning();
   catcherL.changeColor();
   colorSwapLTimeout = setTimeout(function () {
     colorSwapL();
@@ -574,7 +616,6 @@ function colorSwapL() {
 }
 
 function colorSwapR() {
-  //catcherR.colorWarning();
   catcherR.changeColor();
   colorSwapRTimeout = setTimeout(function () {
     colorSwapR();
